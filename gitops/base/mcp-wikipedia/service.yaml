@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-wikipedia
+  namespace: smart-travel-buddy
+spec:
+  selector:
+    app: mcp-wikipedia
+  ports:
+    - port: 8000
+      targetPort: 8000

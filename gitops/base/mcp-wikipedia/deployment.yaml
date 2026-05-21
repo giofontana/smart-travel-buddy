@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-wikipedia
+  namespace: smart-travel-buddy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-wikipedia
+  template:
+    metadata:
+      labels:
+        app: mcp-wikipedia
+    spec:
+      containers:
+        - name: mcp-wikipedia
+          image: smart-travel-buddy/mcp-wikipedia:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m

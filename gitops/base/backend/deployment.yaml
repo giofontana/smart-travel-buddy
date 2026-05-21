@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: smart-travel-buddy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: smart-travel-buddy/backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://postgres:$(POSTGRES_PASSWORD)@postgresql:5432/travel_agent_db"
+            - name: DATABASE_URL_SYNC
+              value: "postgresql+psycopg://postgres:$(POSTGRES_PASSWORD)@postgresql:5432/travel_agent_db"
+            - name: MCP_WEATHER_URL
+              value: "http://mcp-weather:8000/sse"
+            - name: MCP_CURRENCY_URL
+              value: "http://mcp-currency:8000/sse"
+            - name: MCP_WIKIPEDIA_URL
+              value: "http://mcp-wikipedia:8000/sse"
+            - name: LLM_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: llm-model
+            - name: LLM_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: llm-base-url
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-keys
+                  key: llm-api-key
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: password
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+              cpu: 1000m

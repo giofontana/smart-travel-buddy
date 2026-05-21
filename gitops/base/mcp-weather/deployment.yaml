@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-weather
+  namespace: smart-travel-buddy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-weather
+  template:
+    metadata:
+      labels:
+        app: mcp-weather
+    spec:
+      containers:
+        - name: mcp-weather
+          image: smart-travel-buddy/mcp-weather:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OPENWEATHERMAP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-keys
+                  key: openweathermap
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m

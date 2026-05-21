@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: smart-travel-buddy
+data:
+  llm-model: "gpt-4o"
+  llm-base-url: "https://api.openai.com/v1"
