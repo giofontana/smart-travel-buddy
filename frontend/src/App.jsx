@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWebSocket } from "./hooks/useWebSocket";
 import ChatPanel from "./components/ChatPanel";
+import ItineraryView from "./components/ItineraryView";
+import ProgressCards from "./components/ProgressCards";
 
 const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
 
@@ -71,34 +73,10 @@ export default function App() {
       {/* Right panel: Itinerary / Progress */}
       <div className="flex-1 bg-[var(--color-bg)] overflow-y-auto p-6">
         {phase === "research" && progress.length > 0 && !itinerary && (
-          <div className="max-w-2xl mx-auto space-y-3">
-            <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--color-primary)" }}>
-              Researching your trip...
-            </h2>
-            {progress.map((p, i) => (
-              <div
-                key={i}
-                className="animate-fade-in flex items-center gap-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3"
-              >
-                <div
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    p.status === "complete" ? "bg-green-500" : "bg-[var(--color-accent)] animate-pulse"
-                  }`}
-                />
-                <span className="text-sm">{p.label || p.step}</span>
-                {p.status === "complete" && <span className="ml-auto text-green-600 text-xs font-medium">Done</span>}
-              </div>
-            ))}
-          </div>
+          <ProgressCards progress={progress} />
         )}
 
-        {itinerary && (
-          <div className="max-w-2xl mx-auto">
-            <p className="text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
-              Itinerary view coming soon — data loaded for {itinerary.destination}
-            </p>
-          </div>
-        )}
+        {itinerary && <ItineraryView itinerary={itinerary} />}
 
         {!itinerary && progress.length === 0 && (
           <div className="flex items-center justify-center h-full">
