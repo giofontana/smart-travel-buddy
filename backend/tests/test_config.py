@@ -1,6 +1,5 @@
 """Tests for application configuration."""
 
-import pytest
 from smart_travel_buddy.config import Settings
 
 
