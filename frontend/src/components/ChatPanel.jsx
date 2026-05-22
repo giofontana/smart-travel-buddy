@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Compass } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 
 export default function ChatPanel({ messages, onSend, isProcessing, connected }) {
@@ -21,7 +21,8 @@ export default function ChatPanel({ messages, onSend, isProcessing, connected })
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-        <h2 className="text-lg font-semibold" style={{ color: "var(--color-primary)" }}>
+        <h2 className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--color-primary)" }}>
+          <Compass className="w-5 h-5" />
           Smart Travel Buddy
         </h2>
         <div className="flex items-center gap-1.5 text-xs">
