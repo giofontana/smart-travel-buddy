@@ -4,5 +4,5 @@ metadata:
   name: backend-config
   namespace: smart-travel-buddy
 data:
-  llm-model: "gpt-4o"
-  llm-base-url: "https://api.openai.com/v1"
+  llm-model: "qwen3-14b-fp8"
+  llm-base-url: "https://qwen3-14b-fp8-llm-models.apps.simpsons.lab.gfontana.me/v1"

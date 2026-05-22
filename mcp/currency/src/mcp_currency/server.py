@@ -5,7 +5,7 @@ import json
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("currency")
+mcp = FastMCP("currency", host="0.0.0.0")
 
 
 @mcp.tool()
@@ -22,9 +22,12 @@ async def get_exchange_rate(from_currency: str, to_currency: str) -> str:
     """
     url = f"https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.get(url)
         data = response.json()
+
+        if "rates" not in data:
+            return json.dumps({"error": data.get("message", "Unknown error"), "from": from_currency, "to": to_currency})
 
         result = {
             "from": data["base"],
@@ -51,7 +54,7 @@ async def convert(amount: float, from_currency: str, to_currency: str) -> str:
     """
     url = f"https://api.frankfurter.app/latest?amount={amount}&from={from_currency}&to={to_currency}"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.get(url)
         data = response.json()
 

@@ -1,6 +1,8 @@
+import json
 from datetime import datetime
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
 
 from smart_travel_buddy.graph.state import TravelState
@@ -80,6 +82,37 @@ def _guess_currency(destination: str) -> str:
     return "EUR"
 
 
+US_STATES = {
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+    "maine", "maryland", "massachusetts", "michigan", "minnesota",
+    "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new hampshire", "new jersey", "new mexico", "new york",
+    "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+    "pennsylvania", "rhode island", "south carolina", "south dakota",
+    "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+    "west virginia", "wisconsin", "wyoming",
+}
+
+COUNTRY_CODES = {
+    "japan": "JP", "france": "FR", "usa": "US", "united states": "US",
+    "italy": "IT", "uk": "GB", "united kingdom": "GB", "spain": "ES",
+    "thailand": "TH", "australia": "AU", "south africa": "ZA",
+    "brazil": "BR", "mexico": "MX", "canada": "CA", "china": "CN",
+    "india": "IN", "germany": "DE", "portugal": "PT", "greece": "GR",
+    "netherlands": "NL", "belgium": "BE", "austria": "AT",
+    "switzerland": "CH", "sweden": "SE", "norway": "NO", "denmark": "DK",
+    "poland": "PL", "czech republic": "CZ", "hungary": "HU",
+    "turkey": "TR", "russia": "RU", "south korea": "KR",
+    "singapore": "SG", "malaysia": "MY", "indonesia": "ID",
+    "philippines": "PH", "vietnam": "VN", "argentina": "AR",
+    "chile": "CL", "colombia": "CO", "peru": "PE", "new zealand": "NZ",
+    "egypt": "EG", "morocco": "MA", "israel": "IL",
+    "uae": "AE", "united arab emirates": "AE", "saudi arabia": "SA",
+}
+
+
 def _extract_city(destination: str) -> tuple[str, str]:
     """
     Extract city and country code from destination string.
@@ -93,14 +126,19 @@ def _extract_city(destination: str) -> tuple[str, str]:
     parts = destination.split(",")
     city = parts[0].strip()
 
-    # Extract country code - take first 2 letters of country name, uppercase
-    country = parts[1].strip() if len(parts) > 1 else ""
-    country_code = country[:2].upper() if country else "US"
+    location = parts[1].strip().lower() if len(parts) > 1 else ""
 
-    return city, country_code
+    if location in US_STATES:
+        return city, "US"
+
+    for country, code in COUNTRY_CODES.items():
+        if country in location:
+            return city, code
+
+    return city, "US"
 
 
-async def call_weather(state: TravelState, config: dict) -> dict[str, Any]:
+async def call_weather(state: TravelState, config: RunnableConfig) -> dict[str, Any]:
     """
     Call weather MCP tool to get forecast for destination.
 
@@ -167,7 +205,7 @@ async def call_weather(state: TravelState, config: dict) -> dict[str, Any]:
     }
 
 
-async def call_currency(state: TravelState, config: dict) -> dict[str, Any]:
+async def call_currency(state: TravelState, config: RunnableConfig) -> dict[str, Any]:
     """
     Call currency MCP tool to get exchange rate.
 
@@ -199,9 +237,11 @@ async def call_currency(state: TravelState, config: dict) -> dict[str, Any]:
             currency_tool = tool
             break
 
-    # Call the tool
+    # Call the tool (skip if same currency)
     result = None
-    if currency_tool:
+    if to_currency == "USD":
+        result = json.dumps({"from": "USD", "to": "USD", "rate": 1.0, "date": "N/A"})
+    elif currency_tool:
         tool_input = {
             "from_currency": "USD",
             "to_currency": to_currency
@@ -224,7 +264,7 @@ async def call_currency(state: TravelState, config: dict) -> dict[str, Any]:
     }
 
 
-async def call_wikipedia(state: TravelState, config: dict) -> dict[str, Any]:
+async def call_wikipedia(state: TravelState, config: RunnableConfig) -> dict[str, Any]:
     """
     Call Wikipedia MCP tool to get destination summary.
 
@@ -260,7 +300,7 @@ async def call_wikipedia(state: TravelState, config: dict) -> dict[str, Any]:
     result = None
     if wikipedia_tool:
         tool_input = {
-            "title": city
+            "topic": city
         }
         result = await wikipedia_tool.ainvoke(tool_input)
 
@@ -280,7 +320,7 @@ async def call_wikipedia(state: TravelState, config: dict) -> dict[str, Any]:
     }
 
 
-async def call_rag(state: TravelState, config: dict) -> dict[str, Any]:
+async def call_rag(state: TravelState, config: RunnableConfig) -> dict[str, Any]:
     """
     Call RAG retriever to get relevant context from knowledge base.
 

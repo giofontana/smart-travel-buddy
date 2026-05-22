@@ -68,12 +68,11 @@ class Orchestrator:
                 "wikipedia": {"url": settings.mcp_wikipedia_url, "transport": "sse"},
             }
         )
-        await self.mcp_client.__aenter__()
 
-    def _get_mcp_tools(self) -> dict[str, list]:
+    async def _get_mcp_tools(self) -> dict[str, list]:
         if not self.mcp_client:
             return {}
-        all_tools = self.mcp_client.get_tools()
+        all_tools = await self.mcp_client.get_tools()
         categorized = {"weather": [], "currency": [], "wikipedia": []}
         for tool in all_tools:
             name = tool.name.lower()
@@ -110,6 +109,12 @@ class Orchestrator:
 
         last_msg = self.state["messages"][-1]
         content = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+
+        # Strip the JSON ready block from displayed message
+        ready_idx = content.find('{"ready"')
+        if ready_idx > 0:
+            content = content[:ready_idx].rstrip()
+
         await self.broadcast("agent_message", {"content": content})
 
         if self.state["phase"] == "research":
@@ -124,7 +129,7 @@ class Orchestrator:
 
         config = {
             "configurable": {
-                "mcp_tools": self._get_mcp_tools(),
+                "mcp_tools": await self._get_mcp_tools(),
                 "broadcast": self._broadcast_wrapper,
                 "db_session": None,
             }
@@ -170,8 +175,7 @@ class Orchestrator:
         self.state = {**self.state, **result}
 
     async def close(self):
-        if self.mcp_client:
-            await self.mcp_client.__aexit__(None, None, None)
+        pass
 
 
 async def create_orchestrator(broadcast: BroadcastFn) -> Orchestrator:

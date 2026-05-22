@@ -19,6 +19,11 @@ spec:
           ports:
             - containerPort: 8000
           env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: password
             - name: DATABASE_URL
               value: "postgresql+asyncpg://postgres:$(POSTGRES_PASSWORD)@postgresql:5432/travel_agent_db"
             - name: DATABASE_URL_SYNC
@@ -44,11 +49,6 @@ spec:
                 secretKeyRef:
                   name: api-keys
                   key: llm-api-key
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgresql-secret
-                  key: password
           resources:
             requests:
               memory: 512Mi

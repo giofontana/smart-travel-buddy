@@ -1,6 +1,7 @@
 """Knowledge base seeding utilities for loading and embedding markdown files."""
 
 import argparse
+import json
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
@@ -120,16 +121,17 @@ def seed_knowledge(knowledge_dir: str) -> None:
                 # Insert into database using raw SQL with vector cast
                 insert_sql = text("""
                     INSERT INTO knowledge_chunks (source_file, chunk_text, metadata, embedding)
-                    VALUES (:source_file, :chunk_text, :metadata, :embedding::vector)
+                    VALUES (:source_file, :chunk_text, CAST(:metadata AS jsonb), CAST(:embedding AS vector))
                 """)
 
+                embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
                 conn.execute(
                     insert_sql,
                     {
                         "source_file": source_file,
                         "chunk_text": chunk,
-                        "metadata": metadata,
-                        "embedding": embedding,
+                        "metadata": json.dumps(metadata),
+                        "embedding": embedding_str,
                     },
                 )
 
@@ -145,8 +147,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "knowledge_dir",
         nargs="?",
-        default="../../knowledge",
-        help="Path to knowledge directory (default: ../../knowledge)",
+        default="../knowledge",
+        help="Path to knowledge directory (default: ../knowledge)",
     )
 
     args = parser.parse_args()

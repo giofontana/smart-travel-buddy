@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-seed
+  namespace: smart-travel-buddy
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: smart-travel-buddy/backend:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /tmp/knowledge/destinations /tmp/knowledge/cultural /tmp/knowledge/packing
+              for f in /knowledge-data/*; do
+                base=$(basename "$f")
+                dir=$(echo "$base" | cut -d'-' -f1)
+                name=$(echo "$base" | sed "s/^${dir}--//")
+                cp "$f" "/tmp/knowledge/$dir/$name"
+              done
+              echo "=== Running migrations ==="
+              alembic -c alembic.ini upgrade head
+              echo "=== Seeding knowledge base ==="
+              python -m smart_travel_buddy.rag.seed /tmp/knowledge
+          env:
+            - name: HF_HOME
+              value: /tmp/hf_cache
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: password
+            - name: DATABASE_URL_SYNC
+              value: "postgresql+psycopg://postgres:$(POSTGRES_PASSWORD)@postgresql:5432/travel_agent_db"
+          volumeMounts:
+            - name: knowledge
+              mountPath: /knowledge-data
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: knowledge
+          configMap:
+            name: knowledge-data

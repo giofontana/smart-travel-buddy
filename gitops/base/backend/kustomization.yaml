@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
+  - knowledge-configmap.yaml
+  - seed-job.yaml

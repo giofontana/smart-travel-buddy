@@ -1,8 +1,8 @@
 import json
-import re
 from typing import Literal
 
 from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
 
 from smart_travel_buddy.graph.state import TravelState
@@ -59,36 +59,39 @@ def extract_travel_info(state: TravelState) -> TravelState:
         return state
 
     # Try to extract JSON block from the message
-    # Look for JSON object pattern
-    json_pattern = r'\{[^{}]*"ready"\s*:\s*true[^{}]*\}'
-    match = re.search(json_pattern, content)
+    idx = content.find('"ready"')
+    if idx == -1:
+        return state
 
-    if match:
-        try:
-            data = json.loads(match.group(0))
+    # Walk backwards to find the opening brace
+    brace_idx = content.rfind("{", 0, idx)
+    if brace_idx == -1:
+        return state
 
-            # Update state with extracted information
-            if "destination" in data:
-                state["destination"] = data["destination"]
-            if "dates" in data:
-                state["dates"] = data["dates"]
-            if "interests" in data:
-                state["interests"] = data["interests"]
-            if "budget" in data:
-                state["budget"] = data["budget"]
-            if "constraints" in data:
-                state["constraints"] = data["constraints"]
+    decoder = json.JSONDecoder()
+    try:
+        data, _ = decoder.raw_decode(content, brace_idx)
+    except (json.JSONDecodeError, ValueError):
+        return state
 
-            # Move to research phase
-            state["phase"] = "research"
-        except json.JSONDecodeError:
-            # If JSON is malformed, keep state as-is
-            pass
+    if data.get("ready"):
+        if "destination" in data:
+            state["destination"] = data["destination"]
+        if "dates" in data:
+            state["dates"] = data["dates"]
+        if "interests" in data:
+            state["interests"] = data["interests"]
+        if "budget" in data:
+            state["budget"] = data["budget"]
+        if "constraints" in data:
+            state["constraints"] = data["constraints"]
+
+        state["phase"] = "research"
 
     return state
 
 
-async def interview_node(state: TravelState, config: dict) -> TravelState:
+async def interview_node(state: TravelState, config: RunnableConfig) -> TravelState:
     """
     Interview node that conducts the conversation with the user.
 

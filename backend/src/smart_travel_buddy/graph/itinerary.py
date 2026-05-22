@@ -3,6 +3,7 @@ import re
 from typing import Any
 
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
 from smart_travel_buddy.graph.state import TravelState
@@ -48,7 +49,7 @@ def _build_research_context(state: TravelState) -> str:
     return "\n\n".join(parts)
 
 
-async def itinerary_node(state: TravelState, config) -> TravelState:
+async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelState:
     llm = config["configurable"]["llm"]
     broadcast = config["configurable"]["broadcast"]
 

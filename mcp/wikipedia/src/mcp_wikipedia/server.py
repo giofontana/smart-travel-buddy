@@ -7,7 +7,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server
-mcp = FastMCP("wikipedia")
+mcp = FastMCP("wikipedia", host="0.0.0.0")
 
 # Constants
 USER_AGENT = "SmartTravelBuddy/1.0"

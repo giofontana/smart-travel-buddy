@@ -77,30 +77,31 @@ run-db:
 
 run-mcp-currency:
 	$(PODMAN) run -d --name stb-mcp-currency --network $(NETWORK) \
+		-e FASTMCP_HOST=0.0.0.0 \
 		-p 8002:8000 \
 		$(REGISTRY)/smart-travel-buddy-mcp-currency:$(TAG)
 
 run-mcp-weather:
 	$(PODMAN) run -d --name stb-mcp-weather --network $(NETWORK) \
-		-e OPENWEATHERMAP_API_KEY=$(OPENWEATHERMAP_API_KEY) \
+		--env-file .env \
+		-e FASTMCP_HOST=0.0.0.0 \
 		-p 8001:8000 \
 		$(REGISTRY)/smart-travel-buddy-mcp-weather:$(TAG)
 
 run-mcp-wikipedia:
 	$(PODMAN) run -d --name stb-mcp-wikipedia --network $(NETWORK) \
+		-e FASTMCP_HOST=0.0.0.0 \
 		-p 8003:8000 \
 		$(REGISTRY)/smart-travel-buddy-mcp-wikipedia:$(TAG)
 
 run-backend:
 	$(PODMAN) run -d --name stb-backend --network $(NETWORK) \
+		--env-file .env \
 		-e DATABASE_URL=postgresql+asyncpg://postgres:postgres@stb-postgresql:5432/travel_agent_db \
 		-e DATABASE_URL_SYNC=postgresql+psycopg://postgres:postgres@stb-postgresql:5432/travel_agent_db \
 		-e MCP_WEATHER_URL=http://stb-mcp-weather:8000/sse \
 		-e MCP_CURRENCY_URL=http://stb-mcp-currency:8000/sse \
 		-e MCP_WIKIPEDIA_URL=http://stb-mcp-wikipedia:8000/sse \
-		-e LLM_MODEL=$(LLM_MODEL) \
-		-e LLM_BASE_URL=$(LLM_BASE_URL) \
-		-e LLM_API_KEY=$(LLM_API_KEY) \
 		-e DEBUG=true \
 		-p 8000:8000 \
 		$(REGISTRY)/smart-travel-buddy-backend:$(TAG)
@@ -112,10 +113,10 @@ run-frontend:
 # ── Database ─────────────────────────────────────────────────────
 
 migrate:
-	cd backend && alembic upgrade head
+	cd backend && alembic -c alembic/alembic.ini upgrade head
 
 seed:
-	cd backend && python -m smart_travel_buddy.rag.seed ../../knowledge
+	cd backend && python -m smart_travel_buddy.rag.seed ../knowledge
 
 # ── Test & Lint ──────────────────────────────────────────────────
 

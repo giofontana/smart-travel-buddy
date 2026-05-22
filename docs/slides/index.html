@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building AI Agents on Red Hat OpenShift</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700;900&family=Red+Hat+Text:wght@400;500;700&display=swap');
+
+  :root {
+    --rh-red: #EE0000;
+    --rh-dark: #151515;
+    --rh-teal: #009596;
+    --rh-white: #FFFFFF;
+    --rh-light-gray: #F0F0F0;
+    --rh-gray: #6A6E73;
+  }
+
+  .reveal {
+    font-family: 'Red Hat Text', Arial, sans-serif;
+    font-size: 28px;
+    color: var(--rh-dark);
+  }
+
+  .reveal h1, .reveal h2, .reveal h3 {
+    font-family: 'Red Hat Display', Arial, sans-serif;
+    text-transform: none;
+    letter-spacing: -0.02em;
+  }
+
+  .reveal h2 {
+    font-size: 1.6em;
+    margin-bottom: 0.6em;
+    color: var(--rh-dark);
+  }
+
+  .reveal h3 {
+    font-size: 1.1em;
+    color: var(--rh-red);
+    margin-top: 0.8em;
+    margin-bottom: 0.3em;
+    text-align: left;
+  }
+
+  .reveal ul {
+    text-align: left;
+    font-size: 0.72em;
+    line-height: 1.6;
+  }
+
+  .reveal li {
+    margin-bottom: 0.2em;
+  }
+
+  .reveal li::marker {
+    color: var(--rh-red);
+  }
+
+  .reveal .slide-number {
+    font-family: 'Red Hat Text', Arial, sans-serif;
+    font-size: 14px;
+    color: var(--rh-gray);
+  }
+
+  /* Red accent bar on left */
+  .reveal .slides section::before {
+    content: '';
+    position: absolute;
+    left: -40px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--rh-red);
+  }
+
+  /* Title slide */
+  .reveal .slides section.title-slide {
+    background: var(--rh-red);
+    color: var(--rh-white);
+  }
+  .reveal .slides section.title-slide::before {
+    display: none;
+  }
+  .reveal .slides section.title-slide h1 {
+    color: var(--rh-white);
+    font-size: 2.2em;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 0.3em;
+  }
+  .reveal .slides section.title-slide p {
+    color: var(--rh-white);
+    font-size: 0.8em;
+    opacity: 0.9;
+  }
+  .reveal .slides section.title-slide .presenter {
+    margin-top: 1.5em;
+    font-size: 0.7em;
+    opacity: 0.85;
+  }
+  .reveal .slides section.title-slide .logo {
+    position: absolute;
+    bottom: 30px;
+    right: 40px;
+  }
+
+  /* Divider slide */
+  .reveal .slides section.divider-slide {
+    text-align: left;
+  }
+  .reveal .slides section.divider-slide h2 {
+    font-size: 2.4em;
+    font-weight: 400;
+    color: var(--rh-red);
+    line-height: 1.15;
+  }
+  .reveal .slides section.divider-slide p {
+    font-size: 0.65em;
+    color: var(--rh-gray);
+    max-width: 60%;
+    margin-top: 1em;
+  }
+
+  /* Visual divider slide (with faded icons) */
+  .reveal .slides section.visual-divider-slide {
+    text-align: left;
+  }
+  .reveal .slides section.visual-divider-slide h2 {
+    font-size: 2.4em;
+    font-weight: 400;
+    color: var(--rh-red);
+    line-height: 1.15;
+  }
+  .reveal .slides section.visual-divider-slide p {
+    font-size: 0.65em;
+    color: var(--rh-gray);
+    max-width: 55%;
+    margin-top: 1em;
+  }
+  .reveal .slides section.visual-divider-slide {
+    overflow: visible;
+  }
+  .visual-divider-slide .divider-icons {
+    position: absolute;
+    right: 150px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.4em;
+    opacity: 0.15;
+  }
+  .visual-divider-slide .divider-icons img {
+    width: 90px;
+    height: 90px;
+  }
+
+  /* Content slide */
+  .reveal .slides section.content-slide {
+    text-align: left;
+  }
+  .reveal .slides section.content-slide h2 {
+    text-align: center;
+    margin-bottom: 0.5em;
+  }
+
+  /* Closing slide */
+  .reveal .slides section.closing-slide {
+    background: var(--rh-red);
+    color: var(--rh-white);
+  }
+  .reveal .slides section.closing-slide::before {
+    display: none;
+  }
+  .reveal .slides section.closing-slide h2 {
+    color: var(--rh-white);
+    font-size: 2.4em;
+    font-weight: 700;
+  }
+  .reveal .slides section.closing-slide p {
+    color: var(--rh-white);
+    opacity: 0.85;
+    font-size: 0.6em;
+    max-width: 50%;
+  }
+  .reveal .slides section.closing-slide .logo {
+    position: absolute;
+    bottom: 30px;
+    right: 40px;
+  }
+
+  /* Demo slide */
+  .reveal .slides section.demo-slide {
+    text-align: center;
+  }
+  .reveal .slides section.demo-slide h2 {
+    font-size: 2.6em;
+    color: var(--rh-red);
+    font-weight: 700;
+  }
+  .reveal .slides section.demo-slide p {
+    color: var(--rh-teal);
+    font-size: 0.8em;
+  }
+
+  /* Architecture image */
+  .reveal .slides section.arch-slide img {
+    max-width: 95%;
+    max-height: 70vh;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Speaker notes indicator */
+  .reveal .slides section {
+    padding: 30px 50px;
+  }
+
+  /* RH logo SVG for title/closing */
+  .rh-logo {
+    width: 120px;
+    height: auto;
+  }
+
+  /* ==============================
+     ICON GRID LAYOUTS
+     ============================== */
+
+  .icon-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5em 2em;
+    justify-items: center;
+    text-align: center;
+    margin-top: 1em;
+  }
+
+  .icon-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.2em 1.5em;
+    justify-items: center;
+    text-align: center;
+    margin-top: 1em;
+  }
+
+  .icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .icon-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+  }
+  .icon-grid-4 .icon-item img {
+    width: 72px;
+    height: 72px;
+  }
+  .icon-item span {
+    font-family: 'Red Hat Text', Arial, sans-serif;
+    font-size: 0.6em;
+    color: var(--rh-dark);
+    font-weight: 500;
+    line-height: 1.3;
+    max-width: 160px;
+  }
+
+  /* ==============================
+     AGENDA ICON GRID
+     ============================== */
+
+  .agenda-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1em;
+    margin-top: 0.6em;
+  }
+  .agenda-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.6em 0.4em;
+    border-radius: 8px;
+    background: var(--rh-light-gray);
+  }
+  .agenda-item img {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 0.3em;
+  }
+  .agenda-item span {
+    font-size: 0.52em;
+    font-weight: 500;
+    color: var(--rh-dark);
+    line-height: 1.3;
+  }
+  .agenda-item .item-number {
+    font-family: 'Red Hat Display', Arial, sans-serif;
+    font-size: 0.48em;
+    font-weight: 700;
+    color: var(--rh-red);
+    margin-bottom: 0.15em;
+  }
+
+  /* ==============================
+     FLOW DIAGRAM
+     ============================== */
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 1em;
+  }
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.7em 1em;
+    border-radius: 12px;
+    background: var(--rh-light-gray);
+    min-width: 150px;
+    max-width: 220px;
+  }
+  .flow-step img {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.4em;
+  }
+  .flow-step .step-title {
+    font-family: 'Red Hat Display', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.7em;
+    color: var(--rh-dark);
+    margin-bottom: 0.2em;
+  }
+  .flow-step .step-desc {
+    font-size: 0.48em;
+    color: var(--rh-gray);
+    line-height: 1.3;
+    max-width: 170px;
+  }
+  .flow-arrow {
+    font-size: 2em;
+    color: var(--rh-red);
+    padding: 0 0.25em;
+    line-height: 1;
+  }
+
+  /* ==============================
+     ICON ROW (secondary icons below flow)
+     ============================== */
+
+  .icon-row {
+    display: flex;
+    justify-content: center;
+    gap: 2.5em;
+    margin-top: 1.2em;
+  }
+  .icon-row .icon-item img {
+    width: 52px;
+    height: 52px;
+  }
+  .icon-row .icon-item span {
+    font-size: 0.5em;
+  }
+
+  /* ==============================
+     TAGLINE
+     ============================== */
+
+  .tagline {
+    text-align: center;
+    font-family: 'Red Hat Display', Arial, sans-serif;
+    font-size: 0.7em;
+    color: var(--rh-teal);
+    font-weight: 500;
+    margin-top: 1.2em;
+    font-style: italic;
+  }
+
+  .subtitle-line {
+    text-align: center;
+    font-size: 0.6em;
+    color: var(--rh-gray);
+    margin-top: 0.6em;
+    margin-bottom: 0.2em;
+  }
+
+  /* ==============================
+     SECTION LABEL (small h3 for flow+icon slides)
+     ============================== */
+
+  .section-label {
+    font-family: 'Red Hat Display', Arial, sans-serif;
+    font-size: 0.6em;
+    color: var(--rh-gray);
+    text-align: center;
+    margin-top: 1.2em;
+    margin-bottom: 0.3em;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================
+     SLIDE 1: Title
+     ============================================================ -->
+<section class="title-slide" data-notes="Welcome everyone. Today I'll walk you through how we built a real AI agent application — Smart Travel Buddy — and show how Red Hat technologies power every layer, from local LLM inference with OpenShift AI to GitOps-driven deployments with ArgoCD. We'll finish with a live demo.">
+  <h1>Building AI Agents<br>on Red Hat OpenShift</h1>
+  <p>From LLM inference to production deployment</p>
+  <p class="presenter">Giovanni Fontana</p>
+  <div class="logo">
+    <svg class="rh-logo" viewBox="0 0 613 145" xmlns="http://www.w3.org/2000/svg">
+      <path fill="white" d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 00-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 00-.22 1.94c0 9.22 36.3 39.45 84.94 39.45M132 69.74c-.15 1.14-.35 2.09-.53 2.94-1.17 5.44-6.57 8.82-14.5 8.82H80.79c-25.65 0-47.79-14.91-47.79-19.86a3.27 3.27 0 01.31-1.42l19-49.86C55.83 1.43 64.79 0 72.21 0c5.43 0 10.86.29 15.31 2.72 3.47 1.89 21.72 12.11 24.91 13.71 6.87 3.43 9.06 5.93 10.44 11.62l8.25 35.87a7.45 7.45 0 01.27 2.07c.09.89.09 1.78.09 2.67 0 .39-.04.78-.09 1.08"/>
+      <text x="175" y="95" fill="white" font-family="Red Hat Display, Arial" font-size="68" font-weight="700">Red Hat</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 2: Agenda (icon grid)
+     ============================================================ -->
+<section class="content-slide" data-notes="Here's our roadmap. We'll start with why AI agents are harder than they look, introduce the application, dive into the architecture, and then focus on four Red Hat technologies that make it production-ready. We'll wrap up with a live demo.">
+  <h2>What we'll cover today</h2>
+  <div class="agenda-icon-grid">
+    <div class="agenda-item">
+      <div class="item-number">01</div>
+      <img src="icons/brain.png" alt="Brain">
+      <span>The AI agent challenge</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">02</div>
+      <img src="icons/location-pin.png" alt="Location">
+      <span>Smart Travel Buddy</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">03</div>
+      <img src="icons/arch-icon.png" alt="Architecture">
+      <span>Application architecture</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">04</div>
+      <img src="icons/agentic-ai.png" alt="AI">
+      <span>The AI layer</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">05</div>
+      <img src="icons/ai-inference.png" alt="Inference">
+      <span>OpenShift AI + vLLM</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">06</div>
+      <img src="icons/platform.png" alt="Platform">
+      <span>OpenShift platform</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">07</div>
+      <img src="icons/devops.png" alt="DevOps">
+      <span>GitOps + ArgoCD</span>
+    </div>
+    <div class="agenda-item">
+      <div class="item-number">08</div>
+      <img src="icons/conversation.png" alt="Demo">
+      <span>Live demo</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 3: Divider — The Challenge (visual)
+     ============================================================ -->
+<section class="visual-divider-slide" data-notes="Let's start with the problem. Everyone is excited about LLMs, but building a useful AI application requires much more than just calling an API.">
+  <h2>The challenge</h2>
+  <p>AI applications need more than just a model</p>
+  <div class="divider-icons">
+    <img src="icons/brain.png" alt="">
+    <img src="icons/thermometer.png" alt="">
+    <img src="icons/gear.png" alt="">
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 4: AI agents are more than chat (icon grid)
+     ============================================================ -->
+<section class="content-slide" data-notes="An AI agent does much more than generate text. It needs to call external tools, manage conversation state across multiple phases, and synthesize information from different sources. Real-world agents need access to live data: weather, currencies, knowledge bases. They must manage multi-step workflows with state and memory.">
+  <h2>AI agents are more than chat</h2>
+  <div class="icon-grid-4">
+    <div class="icon-item">
+      <img src="icons/orchestration.png" alt="Orchestration">
+      <span>Orchestrates tools, data &amp; reasoning</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/globe.png" alt="Live data">
+      <span>Live data access: weather, currencies</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/flowchart.png" alt="Workflows">
+      <span>Multi-step workflows with state</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/data.png" alt="Memory">
+      <span>Conversation memory &amp; context</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 5: Production challenges (icon grid)
+     ============================================================ -->
+<section class="content-slide" data-notes="When you move to production, you face additional challenges: where does the model run? How do you manage secrets? How do you deploy reliably? Model hosting requires GPU resources, low latency, and model flexibility. Each tool should be an isolated, scalable microservice. Data privacy means keeping models and data within your infrastructure. And deployment must be reproducible, auditable, and GitOps-driven.">
+  <h2>Production challenges</h2>
+  <div class="icon-grid-4">
+    <div class="icon-item">
+      <img src="icons/gpu.png" alt="GPU">
+      <span>GPU resources &amp; low latency</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/microservices.png" alt="Microservices">
+      <span>Isolated, scalable services</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/padlock.png" alt="Privacy">
+      <span>Data privacy on-premises</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/devops.png" alt="GitOps">
+      <span>GitOps-driven releases</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 6: Divider — The Solution (visual)
+     ============================================================ -->
+<section class="visual-divider-slide" data-notes="To demonstrate how Red Hat technologies solve these challenges, we built Smart Travel Buddy — a fully functional AI travel agent running entirely on OpenShift.">
+  <h2>The solution</h2>
+  <p>Smart Travel Buddy — an AI travel planning agent built on Red Hat technologies</p>
+  <div class="divider-icons">
+    <img src="icons/lightbulb.png" alt="">
+    <img src="icons/target.png" alt="">
+    <img src="icons/platform.png" alt="">
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 7: Smart Travel Buddy — Three-phase flow
+     ============================================================ -->
+<section class="content-slide" data-notes="Smart Travel Buddy is a three-phase AI agent. First, it interviews you — asking about your destination, dates, interests, and budget through natural conversation. Then it enters a research phase where it calls external tools: weather forecasts, currency exchange rates, Wikipedia, and a curated knowledge base using RAG. Finally, it synthesizes everything into a structured day-by-day itinerary. The frontend is React with Tailwind, communicating with the backend over WebSocket for real-time updates. The backend uses LangGraph to orchestrate the workflow and MCP — the Model Context Protocol — to connect to external tools.">
+  <h2>Smart Travel Buddy</h2>
+  <p class="subtitle-line">Conversational AI agent for personalized travel itineraries</p>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <img src="icons/conversation.png" alt="Interview">
+      <div class="step-title">Interview</div>
+      <div class="step-desc">Destination, dates, interests, budget</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/globe.png" alt="Research">
+      <div class="step-title">Research</div>
+      <div class="step-desc">Weather, currency, Wikipedia, RAG</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/target.png" alt="Itinerary">
+      <div class="step-title">Itinerary</div>
+      <div class="step-desc">Structured day-by-day travel plan</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 8: Tech stack (icon grid)
+     ============================================================ -->
+<section class="content-slide" data-notes="The tech stack: React 19 with Tailwind CSS on the frontend, communicating via WebSocket. FastAPI with LangGraph for the backend orchestration. Three MCP servers for weather, currency, and Wikipedia. PostgreSQL with pgvector for RAG. Local LLM inference via vLLM. All running as 7 containers on OpenShift.">
+  <h2>Tech stack</h2>
+  <div class="icon-grid-3">
+    <div class="icon-item">
+      <img src="icons/code.png" alt="Frontend">
+      <span>React 19 + Tailwind CSS</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/api.png" alt="Backend">
+      <span>FastAPI + LangGraph</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/mcp-server.png" alt="MCP">
+      <span>3 MCP tool servers</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/data.png" alt="Database">
+      <span>PostgreSQL + pgvector</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/ai-model.png" alt="LLM">
+      <span>Local LLM via vLLM</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/container.png" alt="Containers">
+      <span>7 containers on OpenShift</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 9: Architecture Diagram (KEEP)
+     ============================================================ -->
+<section class="arch-slide" data-notes="Here's the full architecture. Everything runs inside OpenShift. The user interacts with a React frontend, which connects via WebSocket to a FastAPI backend. The LangGraph orchestrator manages the three-phase workflow. During research, it calls three MCP servers — each is its own pod — and a RAG retriever backed by PostgreSQL with pgvector. The LLM itself runs on OpenShift AI using vLLM, exposed as an OpenAI-compatible API. At the bottom, you can see the GitOps pipeline: Kustomize manifests in Git, synced to the cluster by ArgoCD. And all container images are stored in Quay.io. That's 7 pods total, all managed declaratively.">
+  <h2>Application architecture</h2>
+  <img src="architecture.png" alt="Smart Travel Buddy architecture diagram">
+</section>
+
+<!-- ============================================================
+     SLIDE 10: The AI layer — Orchestration
+     ============================================================ -->
+<section class="content-slide" data-notes="LangGraph is the orchestration framework — it models the agent as a state machine with three subgraphs. Each phase has its own logic, and transitions happen based on structured JSON signals from the LLM. MCP — the Model Context Protocol — is an open standard that Anthropic introduced for connecting LLMs to tools. Each of our three tool servers is a standalone FastMCP application running in its own pod, communicating via SSE.">
+  <h2>The AI layer: orchestration</h2>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <img src="icons/conversation.png" alt="Interview">
+      <div class="step-title">Interview</div>
+      <div class="step-desc">Conversation state machine</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/mcp-server.png" alt="Research">
+      <div class="step-title">Research</div>
+      <div class="step-desc">MCP tool coordination</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/flowchart.png" alt="Itinerary">
+      <div class="step-title">Itinerary</div>
+      <div class="step-desc">JSON synthesis</div>
+    </div>
+  </div>
+  <div class="section-label">MCP servers</div>
+  <div class="icon-row">
+    <div class="icon-item">
+      <img src="icons/thermometer.png" alt="Weather">
+      <span>Weather</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/dollar.png" alt="Currency">
+      <span>Currency</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/globe.png" alt="Wikipedia">
+      <span>Wikipedia</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 11: The AI layer — RAG
+     ============================================================ -->
+<section class="content-slide" data-notes="For RAG, we chunk 24 markdown files into 71 knowledge chunks, embed them with sentence-transformers, and store them in PostgreSQL using pgvector. During research, the agent does a semantic search to pull relevant travel tips into the LLM context. The knowledge base covers destinations, cultural tips, and packing guides. Embeddings use the all-MiniLM-L6-v2 model with 384 dimensions.">
+  <h2>The AI layer: RAG</h2>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <img src="icons/code.png" alt="Knowledge">
+      <div class="step-title">24 Knowledge Files</div>
+      <div class="step-desc">Destinations, cultural tips, packing guides</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/ai-model.png" alt="Embeddings">
+      <div class="step-title">Embeddings</div>
+      <div class="step-desc">all-MiniLM-L6-v2, 384 dimensions</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/data.png" alt="pgvector">
+      <div class="step-title">pgvector Search</div>
+      <div class="step-desc">Semantic retrieval into LLM context</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 12: Divider — Red Hat Technologies (visual)
+     ============================================================ -->
+<section class="visual-divider-slide" data-notes="Now let's focus on the four Red Hat technologies that make this production-ready.">
+  <h2>Red Hat<br>technologies</h2>
+  <p>How the Red Hat stack powers every layer of this application</p>
+  <div class="divider-icons">
+    <img src="icons/platform.png" alt="">
+    <img src="icons/ai-inference.png" alt="">
+    <img src="icons/devops.png" alt="">
+    <img src="icons/shield.png" alt="">
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 13: OpenShift AI + vLLM
+     ============================================================ -->
+<section class="content-slide" data-notes="The LLM runs locally on OpenShift AI using vLLM as the serving runtime. vLLM exposes an OpenAI-compatible API, which means our backend code doesn't know or care whether it's talking to OpenAI, a local Llama model, or IBM Granite. We just point the base URL to the internal service. We can swap models by changing a single configuration value, no code changes needed.">
+  <h2>OpenShift AI + vLLM</h2>
+  <p class="subtitle-line">Local LLM serving with GPU acceleration</p>
+  <div class="icon-grid-3">
+    <div class="icon-item">
+      <img src="icons/gpu.png" alt="GPU">
+      <span>GPU-accelerated inference</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/api.png" alt="API">
+      <span>OpenAI-compatible API</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/ai-model.png" alt="Model">
+      <span>Swap models freely</span>
+    </div>
+  </div>
+  <p class="tagline">Llama, Mistral, Granite — same endpoint, different weights</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 14: Why OpenShift AI matters
+     ============================================================ -->
+<section class="content-slide" data-notes="Data sovereignty — every prompt and response stays within the cluster. Cost predictability — no per-token charges, just GPU resource costs. Latency — co-located model serving, no external network hops. Compliance — full audit trail of model versions and configurations. OpenShift AI adds model lifecycle management, GPU scheduling, and monitoring on top. Multi-model serving on shared GPU infrastructure. Integrated monitoring and scaling for inference workloads.">
+  <h2>Why OpenShift AI matters</h2>
+  <div class="icon-grid-4">
+    <div class="icon-item">
+      <img src="icons/shield.png" alt="Sovereignty">
+      <span>Data sovereignty</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/dollar-decreasing.png" alt="Cost">
+      <span>Predictable cost</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/speedometer.png" alt="Latency">
+      <span>Co-located low latency</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/lifecycle.png" alt="Lifecycle">
+      <span>Model lifecycle management</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 15: OpenShift Container Platform — Services
+     ============================================================ -->
+<section class="content-slide" data-notes="OpenShift is the foundation. We have 7 microservices — each with its own container image, each independently deployable. OpenShift handles service discovery automatically — the backend just calls 'mcp-weather:8000' and DNS resolution takes care of the rest. All container images are stored in Quay.io for image management and scanning.">
+  <h2>OpenShift Container Platform</h2>
+  <p class="subtitle-line">7 microservices, one platform</p>
+  <div class="icon-grid-4">
+    <div class="icon-item">
+      <img src="icons/container.png" alt="Frontend">
+      <span>Frontend (nginx)</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/api.png" alt="Backend">
+      <span>Backend (FastAPI)</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/mcp-server.png" alt="MCP">
+      <span>3 MCP servers</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/data.png" alt="PostgreSQL">
+      <span>PostgreSQL</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/run-pipeline.png" alt="Seed">
+      <span>Seed job</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/network.png" alt="Discovery">
+      <span>Service discovery</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/container-registry.png" alt="Registry">
+      <span>Quay.io registry</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 16: Enterprise security & operations
+     ============================================================ -->
+<section class="content-slide" data-notes="Security is enforced by default: containers run with random non-root UIDs, secrets are managed as Kubernetes resources, and external traffic gets TLS edge termination through OpenShift Routes. On the operational side, we set resource requests and limits for each pod, use PersistentVolumeClaims for PostgreSQL data, and rolling updates ensure zero-downtime deployments.">
+  <h2>Enterprise security &amp; operations</h2>
+  <div class="icon-grid-3">
+    <div class="icon-item">
+      <img src="icons/padlock.png" alt="Non-root">
+      <span>Non-root containers</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/key.png" alt="Secrets">
+      <span>Secret management</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/shield.png" alt="TLS">
+      <span>TLS edge termination</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/scalable.png" alt="Limits">
+      <span>Resource limits per pod</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/data.png" alt="PVC">
+      <span>Persistent volumes</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/automation.png" alt="Rolling">
+      <span>Zero-downtime deploys</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 17: GitOps with Kustomize (flow diagram)
+     ============================================================ -->
+<section class="content-slide" data-notes="Our entire infrastructure is declared in Git using Kustomize. The base directory contains environment-agnostic manifests — deployments, services, PVCs — for all 7 components. The dev overlay adds environment-specific configuration: the Quay.io image registry, API key secrets, TLS routes, and debug flags. Kustomize's image transformer automatically rewrites image names. Everything is reproducible — we can tear down the entire environment and rebuild it from scratch with a single 'oc apply -k' command.">
+  <h2>GitOps with Kustomize</h2>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <img src="icons/code.png" alt="Git">
+      <div class="step-title">Git Repository</div>
+      <div class="step-desc">Single source of truth</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/flowchart.png" alt="Base">
+      <div class="step-title">Base Manifests</div>
+      <div class="step-desc">7 deployments, services, PVCs</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/gear.png" alt="Overlay">
+      <div class="step-title">Dev Overlay</div>
+      <div class="step-desc">Images, secrets, routes</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/deployed-model.png" alt="Deploy">
+      <div class="step-title">Apply</div>
+      <div class="step-desc">oc apply -k</div>
+    </div>
+  </div>
+  <div class="icon-row">
+    <div class="icon-item">
+      <img src="icons/container-registry.png" alt="Images">
+      <span>Image transformers</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/key.png" alt="Secrets">
+      <span>Secrets in Git</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/automation.png" alt="Rebuild">
+      <span>Reproducible rebuilds</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 18: ArgoCD (flow diagram)
+     ============================================================ -->
+<section class="content-slide" data-notes="ArgoCD closes the loop. It watches our Git repository and continuously syncs the Kustomize manifests to the cluster. When we push a change — say, updating an image tag or adding an environment variable — ArgoCD detects it, renders the Kustomize output, and applies it. No one runs kubectl or oc in production. Drift detection is the killer feature: if someone manually edits a resource on the cluster, ArgoCD notices the difference and corrects it. The cluster always matches what's in Git. For day 2 operations, rollback is just a Git revert. Multi-environment promotion is merging between branches. And since ArgoCD runs as an OpenShift operator, it integrates with SSO and RBAC out of the box.">
+  <h2>ArgoCD: continuous deployment</h2>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <img src="icons/code.png" alt="Push">
+      <div class="step-title">Push to Git</div>
+      <div class="step-desc">Developer commits</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/automation.png" alt="Detect">
+      <div class="step-title">ArgoCD Detects</div>
+      <div class="step-desc">Watches repo, diffs state</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/deployed-model.png" alt="Sync">
+      <div class="step-title">Sync to Cluster</div>
+      <div class="step-desc">Kustomize render + apply</div>
+    </div>
+    <div class="flow-arrow">&#10140;</div>
+    <div class="flow-step">
+      <img src="icons/lifecycle.png" alt="Heal">
+      <div class="step-title">Self-Healing</div>
+      <div class="step-desc">Drift detection &amp; correction</div>
+    </div>
+  </div>
+  <div class="icon-row">
+    <div class="icon-item">
+      <img src="icons/run-pipeline.png" alt="Rollback">
+      <span>Instant Git rollback</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/flowchart.png" alt="Promotion">
+      <span>Multi-env promotion</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/platform.png" alt="Operator">
+      <span>OpenShift operator</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 19: End-to-end AI platform
+     ============================================================ -->
+<section class="content-slide" data-notes="Let me bring it all together. The Red Hat stack gives you an end-to-end AI platform. OpenShift AI handles model serving with data sovereignty. OpenShift provides the enterprise Kubernetes foundation with security and networking built in. GitOps and ArgoCD make deployments reproducible and auditable.">
+  <h2>End-to-end AI platform</h2>
+  <div class="icon-grid-3">
+    <div class="icon-item">
+      <img src="icons/ai-inference.png" alt="AI">
+      <span>OpenShift AI<br>Local LLM serving</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/platform.png" alt="Platform">
+      <span>OpenShift<br>7 microservices</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/devops.png" alt="GitOps">
+      <span>GitOps + ArgoCD<br>Reproducible deploys</span>
+    </div>
+  </div>
+  <p class="tagline">Data never leaves your infrastructure</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 20: Open source, no lock-in
+     ============================================================ -->
+<section class="content-slide" data-notes="The key philosophy is open source with no lock-in. Every framework we used — LangGraph, FastAPI, MCP, PostgreSQL — is open source. The OpenAI-compatible API means we can swap models without code changes. Kustomize and ArgoCD are CNCF projects that work on any Kubernetes. And the developer experience is seamless: this same application runs locally with Podman for development and at scale on OpenShift for production. The platform handles GPUs, secrets, TLS, and scaling — developers just write AI logic.">
+  <h2>Open source, no lock-in</h2>
+  <div class="icon-grid-3">
+    <div class="icon-item">
+      <img src="icons/code.png" alt="Open source">
+      <span>100% open source stack</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/api.png" alt="API">
+      <span>OpenAI-compatible API</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/cloud-native.png" alt="CNCF">
+      <span>CNCF-portable GitOps</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/developer.png" alt="Developer">
+      <span>Developer-first experience</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/container.png" alt="Podman">
+      <span>Podman local, OCP at scale</span>
+    </div>
+    <div class="icon-item">
+      <img src="icons/scalable.png" alt="Scale">
+      <span>Platform handles the hard parts</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 21: Demo
+     ============================================================ -->
+<section class="demo-slide" data-notes="Let's see it in action. I'll show you the application running on OpenShift — from the conversation with the AI agent, through the real-time research phase, to the generated itinerary. I'll also show the OpenShift console so you can see the pods, the ArgoCD dashboard, and the GitOps workflow.">
+  <h2>Demo time</h2>
+  <p>Live walkthrough of Smart Travel Buddy on OpenShift</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 22: Closing
+     ============================================================ -->
+<section class="closing-slide" data-notes="Thank you for your time. Happy to take any questions about the architecture, the Red Hat technologies, or the implementation details.">
+  <h2>Thank you</h2>
+  <p>Red Hat is the world's leading provider of enterprise open source software solutions. Award-winning support, training, and consulting services make Red Hat a trusted adviser to the Fortune 500.</p>
+  <div class="logo">
+    <svg class="rh-logo" viewBox="0 0 613 145" xmlns="http://www.w3.org/2000/svg">
+      <path fill="white" d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 00-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 00-.22 1.94c0 9.22 36.3 39.45 84.94 39.45"/>
+      <text x="175" y="95" fill="white" font-family="Red Hat Display, Arial" font-size="68" font-weight="700">Red Hat</text>
+    </svg>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: true,
+  showNotes: false,
+  width: 1280,
+  height: 720,
+  margin: 0.04,
+  transition: 'fade',
+  transitionSpeed: 'fast',
+  plugins: [RevealNotes]
+});
+</script>
+</body>
+</html>

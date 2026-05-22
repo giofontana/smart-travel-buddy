@@ -8,7 +8,7 @@ from datetime import datetime
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("weather")
+mcp = FastMCP("weather", host="0.0.0.0")
 
 
 def _get_api_key() -> str:
@@ -55,7 +55,7 @@ async def get_forecast(city: str, country_code: str, days: int = 5) -> str:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
-        data = await response.json()
+        data = response.json()
 
         # Aggregate 3-hour data into daily summaries
         daily_data = defaultdict(lambda: {
@@ -132,7 +132,7 @@ async def get_current_weather(city: str, country_code: str) -> str:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
-        data = await response.json()
+        data = response.json()
 
         result = {
             "city": data["name"],

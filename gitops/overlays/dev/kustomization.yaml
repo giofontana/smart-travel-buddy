@@ -3,6 +3,22 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - configmap.yaml
+  - postgresql-secret.yaml
+  - api-keys-secret.yaml
+  - route.yaml
+
+images:
+  - name: smart-travel-buddy/backend
+    newName: quay.io/gfontana/smart-travel-buddy-backend
+  - name: smart-travel-buddy/frontend
+    newName: quay.io/gfontana/smart-travel-buddy-frontend
+  - name: smart-travel-buddy/mcp-currency
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-currency
+  - name: smart-travel-buddy/mcp-weather
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-weather
+  - name: smart-travel-buddy/mcp-wikipedia
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-wikipedia
 
 patches:
   - target:
@@ -14,10 +30,3 @@ patches:
         value:
           name: DEBUG
           value: "true"
-
-configMapGenerator:
-  - name: backend-config
-    namespace: smart-travel-buddy
-    literals:
-      - llm-model=gpt-4o
-      - llm-base-url=https://api.openai.com/v1
