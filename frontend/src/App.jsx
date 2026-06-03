@@ -78,7 +78,8 @@ export default function App() {
   return (
     <div className="h-screen flex">
       {/* Left panel: Chat */}
-      <div className="w-[400px] min-w-[350px] border-r border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div className="w-[400px] min-w-[350px] border-r border-[var(--color-border)] bg-[var(--color-bg)]"
+        style={{ paddingBottom: flowOpen ? "190px" : 0 }}>
         <ChatPanel
           messages={messages}
           onSend={handleSend}
@@ -88,7 +89,8 @@ export default function App() {
       </div>
 
       {/* Right panel: Itinerary / Progress */}
-      <div className="flex-1 bg-[var(--color-bg)] overflow-y-auto p-6">
+      <div className="flex-1 bg-[var(--color-bg)] overflow-y-auto p-6"
+        style={{ paddingBottom: flowOpen ? "190px" : undefined }}>
         {phase === "research" && progress.length > 0 && !itinerary && (
           <ProgressCards progress={progress} />
         )}
@@ -113,6 +115,7 @@ export default function App() {
         activeConnections={traceState.activeConnections}
         completedConnections={traceState.completedConnections}
         startTime={traceState.startTime}
+        endTime={traceState.endTime}
       />
     </div>
   );

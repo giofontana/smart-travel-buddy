@@ -100,16 +100,20 @@ function TraceLog({ events }) {
   );
 }
 
-function ElapsedTimer({ startTime }) {
+function ElapsedTimer({ startTime, endTime }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!startTime) return;
+    if (endTime) {
+      setElapsed(((endTime - startTime) / 1000).toFixed(1));
+      return;
+    }
     const interval = setInterval(() => {
       setElapsed(((Date.now() - startTime) / 1000).toFixed(1));
     }, 100);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, endTime]);
 
   if (!startTime) return null;
 
@@ -127,12 +131,13 @@ export default function FlowOverlay({
   activeConnections,
   completedConnections,
   startTime,
+  endTime,
 }) {
   if (!isOpen) return null;
 
   return (
     <div className="flow-overlay">
-      <ElapsedTimer startTime={startTime} />
+      <ElapsedTimer startTime={startTime} endTime={endTime} />
 
       <div className="flow-diagram">
         <ComponentBox id="user" icon={"\u{1F464}"} label="User"

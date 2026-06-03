@@ -5,6 +5,7 @@ export function useTraceEvents(lastMessage) {
   const [activeConnections, setActiveConnections] = useState([]);
   const [completedConnections, setCompletedConnections] = useState([]);
   const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
   const pendingStarts = useRef(new Map());
 
   const reset = useCallback(() => {
@@ -12,6 +13,7 @@ export function useTraceEvents(lastMessage) {
     setActiveConnections([]);
     setCompletedConnections([]);
     setStartTime(Date.now());
+    setEndTime(null);
     pendingStarts.current.clear();
   }, []);
 
@@ -47,8 +49,11 @@ export function useTraceEvents(lastMessage) {
           duration_ms: evt.duration_ms,
         },
       ]);
+      if (evt.source === "backend" && evt.target === "user") {
+        setEndTime(Date.now());
+      }
     }
   }, [lastMessage, startTime]);
 
-  return { events, activeConnections, completedConnections, startTime, reset };
+  return { events, activeConnections, completedConnections, startTime, endTime, reset };
 }
