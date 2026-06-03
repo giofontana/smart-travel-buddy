@@ -41,3 +41,201 @@ body {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
+
+/* === Flow Overlay === */
+.flow-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 190px;
+  background: rgba(12, 12, 30, 0.96);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(100, 100, 255, 0.15);
+  display: flex;
+  padding: 16px 24px;
+  gap: 24px;
+  z-index: 100;
+  animation: flow-slideUp 0.3s ease-out;
+}
+
+@keyframes flow-slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.flow-diagram {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.flow-comp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  min-width: 70px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.comp-idle {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.comp-idle .flow-comp-label { color: rgba(255, 255, 255, 0.4); }
+
+.comp-active {
+  background: rgba(106, 27, 154, 0.35);
+  border: 1px solid #ce93d8;
+  box-shadow: 0 0 18px rgba(206, 147, 216, 0.3);
+}
+.comp-active .flow-comp-label { color: #e1bee7; }
+
+.comp-done {
+  background: rgba(0, 150, 80, 0.2);
+  border: 1px solid rgba(0, 200, 100, 0.4);
+}
+.comp-done .flow-comp-label { color: #81c784; }
+
+.comp-source {
+  background: rgba(0, 150, 150, 0.25);
+  border: 1px solid rgba(0, 200, 200, 0.5);
+}
+.comp-source .flow-comp-label { color: #80cbc4; }
+
+.flow-comp-icon { font-size: 22px; }
+.flow-comp-label { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
+
+.flow-comp-check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #43a047;
+  color: #fff;
+  font-size: 8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.15);
+  position: relative;
+  min-width: 30px;
+  justify-content: center;
+}
+.flow-arrow-active { color: rgba(0, 255, 136, 0.6); }
+.flow-arrow-dim { color: rgba(255, 255, 255, 0.08); }
+
+.flow-arrow-sm {
+  min-width: 24px;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.flow-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+  animation: flow-travelRight 0.8s ease-in-out infinite;
+}
+
+@keyframes flow-travelRight {
+  0% { left: 0; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { left: calc(100% - 6px); opacity: 0; }
+}
+
+.flow-mcp-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.flow-mcp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.flow-mcp-group .flow-comp {
+  min-width: 80px;
+  padding: 6px 10px;
+  flex-direction: row;
+  gap: 6px;
+}
+.flow-mcp-group .flow-comp-icon { font-size: 14px; }
+.flow-mcp-group .flow-comp-label { font-size: 8px; }
+
+.flow-log {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 20px;
+  overflow-y: auto;
+}
+
+.flow-log-title {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 6px;
+}
+
+.flow-log-entry {
+  font-size: 11px;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  padding: 3px 0;
+  display: flex;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.flow-log-time { color: rgba(255, 255, 255, 0.3); min-width: 55px; }
+.flow-log-detail { color: rgba(255, 255, 255, 0.7); flex: 1; }
+.flow-log-duration { color: #81c784; font-size: 10px; }
+
+.flow-log-active .flow-log-detail { color: #ffd54f; }
+.flow-log-active .flow-log-duration { color: #ffd54f; }
+
+.flow-timer {
+  position: absolute;
+  top: 12px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.flow-timer-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.flow-timer-value {
+  font-size: 16px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  color: #80cbc4;
+  font-weight: 600;
+}
