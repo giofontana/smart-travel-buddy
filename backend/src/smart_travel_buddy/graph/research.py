@@ -151,6 +151,7 @@ async def call_weather(state: TravelState, config: RunnableConfig) -> dict[str, 
     """
     destination = state["destination"]
     dates = state["dates"]
+    trace = config["configurable"].get("trace")
 
     # Broadcast progress
     broadcast = config["configurable"]["broadcast"]
@@ -187,7 +188,13 @@ async def call_weather(state: TravelState, config: RunnableConfig) -> dict[str, 
             "country_code": country_code,
             "days": days
         }
+        if trace:
+            await trace.start("backend", "mcp-weather", f"Querying weather for {destination}")
+
         result = await weather_tool.ainvoke(tool_input)
+
+        if trace:
+            await trace.end("mcp-weather", "backend", f"Weather data received for {destination}")
 
     # Broadcast complete
     await broadcast({
@@ -217,6 +224,7 @@ async def call_currency(state: TravelState, config: RunnableConfig) -> dict[str,
         Dict with updated research_results containing currency data
     """
     destination = state["destination"]
+    trace = config["configurable"].get("trace")
 
     # Broadcast progress
     broadcast = config["configurable"]["broadcast"]
@@ -246,7 +254,13 @@ async def call_currency(state: TravelState, config: RunnableConfig) -> dict[str,
             "from_currency": "USD",
             "to_currency": to_currency
         }
+        if trace:
+            await trace.start("backend", "mcp-currency", f"Querying exchange rate for {destination}")
+
         result = await currency_tool.ainvoke(tool_input)
+
+        if trace:
+            await trace.end("mcp-currency", "backend", f"Exchange rate received for {destination}")
 
     # Broadcast complete
     await broadcast({
@@ -276,6 +290,7 @@ async def call_wikipedia(state: TravelState, config: RunnableConfig) -> dict[str
         Dict with updated research_results containing Wikipedia data
     """
     destination = state["destination"]
+    trace = config["configurable"].get("trace")
 
     # Broadcast progress
     broadcast = config["configurable"]["broadcast"]
@@ -302,7 +317,13 @@ async def call_wikipedia(state: TravelState, config: RunnableConfig) -> dict[str
         tool_input = {
             "topic": city
         }
+        if trace:
+            await trace.start("backend", "mcp-wikipedia", f"Querying Wikipedia for {destination}")
+
         result = await wikipedia_tool.ainvoke(tool_input)
+
+        if trace:
+            await trace.end("mcp-wikipedia", "backend", f"Wikipedia data received for {destination}")
 
     # Broadcast complete
     await broadcast({
@@ -333,6 +354,7 @@ async def call_rag(state: TravelState, config: RunnableConfig) -> dict[str, Any]
     """
     destination = state["destination"]
     interests = state["interests"]
+    trace = config["configurable"].get("trace")
 
     # Broadcast progress
     broadcast = config["configurable"]["broadcast"]
@@ -344,6 +366,9 @@ async def call_rag(state: TravelState, config: RunnableConfig) -> dict[str, Any]
 
     # Get db_session from config (optional)
     db_session = config.get("configurable", {}).get("db_session")
+
+    if trace:
+        await trace.start("backend", "rag", f"Querying knowledge base for {destination}")
 
     rag_context = ""
     if db_session:
@@ -360,6 +385,9 @@ async def call_rag(state: TravelState, config: RunnableConfig) -> dict[str, Any]
         except Exception as e:
             # If RAG fails, continue without context
             rag_context = f"RAG retrieval failed: {str(e)}"
+
+    if trace:
+        await trace.end("rag", "backend", f"Knowledge base data received for {destination}")
 
     # Broadcast complete
     await broadcast({

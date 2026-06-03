@@ -83,3 +83,106 @@ async def test_duration_tracks_correct_pair():
     assert end_data["source"] == "mcp-weather"
     assert end_data["target"] == "backend"
     assert end_data["duration_ms"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_interview_node_emits_llm_traces():
+    from langchain_core.messages import HumanMessage, AIMessage
+    from unittest.mock import AsyncMock
+
+    trace_events = []
+    async def capture_broadcast(event_type, data):
+        if event_type == "trace":
+            trace_events.append(data)
+
+    trace = TraceEmitter(capture_broadcast)
+
+    mock_llm = AsyncMock()
+    mock_llm.ainvoke.return_value = AIMessage(content="Where do you want to go?")
+
+    state = {
+        "messages": [HumanMessage(content="Hi")],
+        "destination": "", "dates": None, "interests": [],
+        "budget": "", "constraints": [], "phase": "interview",
+        "research_results": {}, "itinerary": None,
+    }
+
+    config = {"configurable": {"llm": mock_llm, "trace": trace}}
+
+    from smart_travel_buddy.graph.interview import interview_node
+    await interview_node(state, config)
+
+    sources_targets = [(e["source"], e["target"]) for e in trace_events]
+    assert ("backend", "llm") in sources_targets
+    assert ("llm", "backend") in sources_targets
+
+
+@pytest.mark.asyncio
+async def test_call_weather_emits_mcp_traces():
+    import json
+    from unittest.mock import AsyncMock
+
+    trace_events = []
+    async def capture_broadcast(event_type_or_dict, data=None):
+        if isinstance(event_type_or_dict, str) and event_type_or_dict == "trace":
+            trace_events.append(data)
+
+    trace = TraceEmitter(capture_broadcast)
+
+    mock_tool = AsyncMock()
+    mock_tool.name = "get_forecast"
+    mock_tool.ainvoke.return_value = json.dumps({"city": "Tokyo", "forecast": []})
+
+    state = {
+        "messages": [], "destination": "Tokyo, Japan",
+        "dates": {"start": "2026-07-10", "end": "2026-07-14"},
+        "interests": ["food"], "budget": "mid-range", "constraints": [],
+        "phase": "research", "research_results": {}, "itinerary": None,
+    }
+
+    config = {"configurable": {
+        "mcp_tools": {"weather": [mock_tool]},
+        "broadcast": capture_broadcast,
+        "trace": trace,
+    }}
+
+    from smart_travel_buddy.graph.research import call_weather
+    await call_weather(state, config)
+
+    sources_targets = [(e["source"], e["target"]) for e in trace_events]
+    assert ("backend", "mcp-weather") in sources_targets
+    assert ("mcp-weather", "backend") in sources_targets
+
+
+@pytest.mark.asyncio
+async def test_itinerary_node_emits_llm_traces():
+    from langchain_core.messages import AIMessage
+    from unittest.mock import AsyncMock
+
+    trace_events = []
+    async def capture_broadcast(event_type, data=None):
+        if event_type == "trace":
+            trace_events.append(data)
+
+    trace = TraceEmitter(capture_broadcast)
+
+    mock_llm = AsyncMock()
+    mock_llm.ainvoke.return_value = AIMessage(content='```json\n{"title":"Tokyo Trip","days":[]}\n```')
+
+    state = {
+        "messages": [], "destination": "Tokyo, Japan",
+        "dates": {"start": "2026-07-10", "end": "2026-07-14"},
+        "interests": ["food"], "budget": "mid-range", "constraints": [],
+        "phase": "research", "research_results": {
+            "weather": "{}", "currency": "{}", "wikipedia": "Tokyo info", "rag_context": "",
+        }, "itinerary": None,
+    }
+
+    config = {"configurable": {"llm": mock_llm, "broadcast": capture_broadcast, "trace": trace}}
+
+    from smart_travel_buddy.graph.itinerary import itinerary_node
+    await itinerary_node(state, config)
+
+    sources_targets = [(e["source"], e["target"]) for e in trace_events]
+    assert ("backend", "llm") in sources_targets
+    assert ("llm", "backend") in sources_targets

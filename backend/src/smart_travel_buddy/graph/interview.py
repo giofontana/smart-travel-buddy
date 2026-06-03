@@ -100,12 +100,19 @@ async def interview_node(state: TravelState, config: RunnableConfig) -> TravelSt
     and extracts travel information if ready.
     """
     llm = config["configurable"]["llm"]
+    trace = config["configurable"].get("trace")
 
     # Prepend system prompt
     messages = [SystemMessage(content=INTERVIEW_SYSTEM_PROMPT)] + state["messages"]
 
     # Call LLM
+    if trace:
+        await trace.start("backend", "llm", "Generating interview response")
+
     response = await llm.ainvoke(messages)
+
+    if trace:
+        await trace.end("llm", "backend", "Interview response received")
 
     # Append response to messages
     state["messages"].append(response)

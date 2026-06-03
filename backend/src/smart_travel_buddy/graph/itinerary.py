@@ -52,6 +52,7 @@ def _build_research_context(state: TravelState) -> str:
 async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelState:
     llm = config["configurable"]["llm"]
     broadcast = config["configurable"]["broadcast"]
+    trace = config["configurable"].get("trace")
 
     await broadcast("progress", {"step": "itinerary", "status": "started", "label": "Generating your itinerary..."})
 
@@ -71,7 +72,13 @@ async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelSt
         HumanMessage(content=user_request),
     ]
 
+    if trace:
+        await trace.start("backend", "llm", "Generating itinerary")
+
     response = await llm.ainvoke(messages)
+
+    if trace:
+        await trace.end("llm", "backend", "Itinerary generated")
 
     itinerary = parse_itinerary_json(response.content)
 
