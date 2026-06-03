@@ -7,6 +7,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from smart_travel_buddy.config import settings
 from smart_travel_buddy.graph.state import TravelState
+from smart_travel_buddy.trace import TraceEmitter
 from smart_travel_buddy.graph.interview import build_interview_graph, should_continue_interview
 from smart_travel_buddy.graph.research import (
     call_weather,
@@ -86,21 +87,27 @@ class Orchestrator:
 
     async def process_message(self, user_message: str):
         self.state["messages"] = list(self.state["messages"]) + [HumanMessage(content=user_message)]
+        trace = TraceEmitter(self.broadcast)
+
+        await trace.start("user", "backend", f"Message received: {user_message[:50]}")
 
         if self.state["phase"] == "interview":
-            await self._run_interview()
+            await self._run_interview(trace)
         elif self.state["phase"] == "research":
-            await self._run_research()
-            await self._run_itinerary()
+            await self._run_research(trace)
+            await self._run_itinerary(trace)
         elif self.state["phase"] == "refinement":
-            await self._run_refinement(user_message)
+            await self._run_refinement(user_message, trace)
 
-    async def _run_interview(self):
+        await trace.end("backend", "user", "Response sent")
+
+    async def _run_interview(self, trace):
         config = {
             "configurable": {
                 "llm": self.llm,
                 "broadcast": self._broadcast_wrapper,
                 "thread_id": self.session_id,
+                "trace": trace,
             }
         }
 
@@ -118,10 +125,10 @@ class Orchestrator:
         await self.broadcast("agent_message", {"content": content})
 
         if self.state["phase"] == "research":
-            await self._run_research()
-            await self._run_itinerary()
+            await self._run_research(trace)
+            await self._run_itinerary(trace)
 
-    async def _run_research(self):
+    async def _run_research(self, trace):
         await self.broadcast("phase_change", {"phase": "research"})
 
         if not self.mcp_client:
@@ -132,6 +139,7 @@ class Orchestrator:
                 "mcp_tools": await self._get_mcp_tools(),
                 "broadcast": self._broadcast_wrapper,
                 "db_session": None,
+                "trace": trace,
             }
         }
 
@@ -152,22 +160,24 @@ class Orchestrator:
         rag_result = await call_rag(self.state, config)
         self.state["research_results"]["rag_context"] = rag_result["research_results"].get("rag_context", "")
 
-    async def _run_itinerary(self):
+    async def _run_itinerary(self, trace):
         config = {
             "configurable": {
                 "llm": self.llm,
                 "broadcast": self._broadcast_wrapper,
+                "trace": trace,
             }
         }
 
         result = await self.itinerary_graph.ainvoke(self.state, config)
         self.state = {**self.state, **result}
 
-    async def _run_refinement(self, user_message: str):
+    async def _run_refinement(self, user_message: str, trace):
         config = {
             "configurable": {
                 "llm": self.llm,
                 "broadcast": self._broadcast_wrapper,
+                "trace": trace,
             }
         }
 
