@@ -185,7 +185,8 @@ body {
 .flow-mcp-group .flow-comp-label { font-size: 8px; }
 
 .flow-log {
-  width: 260px;
+  width: 320px;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -201,6 +202,10 @@ body {
   letter-spacing: 1px;
   color: rgba(255, 255, 255, 0.35);
   margin-bottom: 6px;
+  position: sticky;
+  top: 0;
+  background: rgba(12, 12, 30, 0.96);
+  padding-bottom: 4px;
 }
 
 .flow-log-entry {
@@ -214,7 +219,8 @@ body {
 
 .flow-log-time { color: rgba(255, 255, 255, 0.3); min-width: 55px; }
 .flow-log-detail { color: rgba(255, 255, 255, 0.7); flex: 1; }
-.flow-log-duration { color: #81c784; font-size: 10px; }
+.flow-log-tokens { color: #ce93d8; font-size: 9px; white-space: nowrap; }
+.flow-log-duration { color: #81c784; font-size: 10px; white-space: nowrap; }
 
 .flow-log-active .flow-log-detail { color: #ffd54f; }
 .flow-log-active .flow-log-duration { color: #ffd54f; }

@@ -112,7 +112,8 @@ async def interview_node(state: TravelState, config: RunnableConfig) -> TravelSt
     response = await llm.ainvoke(messages)
 
     if trace:
-        await trace.end("llm", "backend", "Interview response received")
+        token_usage = response.response_metadata.get("token_usage", {})
+        await trace.end("llm", "backend", "Interview response received", tokens=token_usage)
 
     # Append response to messages
     state["messages"].append(response)

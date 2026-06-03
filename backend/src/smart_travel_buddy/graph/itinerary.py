@@ -78,7 +78,8 @@ async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelSt
     response = await llm.ainvoke(messages)
 
     if trace:
-        await trace.end("llm", "backend", "Itinerary generated")
+        token_usage = response.response_metadata.get("token_usage", {})
+        await trace.end("llm", "backend", "Itinerary generated", tokens=token_usage)
 
     itinerary = parse_itinerary_json(response.content)
 

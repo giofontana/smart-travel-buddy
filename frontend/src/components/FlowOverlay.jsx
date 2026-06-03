@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function ComponentBox({ id, icon, label, activeConnections, completedConnections }) {
   const isSource = activeConnections.some((c) => c.source === id);
@@ -62,13 +62,26 @@ function McpArrows({ activeConnections }) {
   );
 }
 
+function formatTokens(tokens) {
+  if (!tokens) return null;
+  const total = tokens.total_tokens;
+  if (!total) return null;
+  return total >= 1000 ? `${(total / 1000).toFixed(1)}k` : `${total}`;
+}
+
 function TraceLog({ events }) {
-  const recent = events.slice(-8);
+  const logRef = useRef(null);
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [events]);
 
   return (
-    <div className="flow-log">
+    <div className="flow-log" ref={logRef}>
       <div className="flow-log-title">Trace Log</div>
-      {recent.map((evt, i) => {
+      {events.map((evt, i) => {
         const time = new Date(evt.timestamp * 1000).toLocaleTimeString("en-US", {
           hour12: false,
           hour: "2-digit",
@@ -76,6 +89,7 @@ function TraceLog({ events }) {
           second: "2-digit",
         });
         const isCompleted = evt.status === "completed";
+        const tokenStr = isCompleted ? formatTokens(evt.tokens) : null;
 
         return (
           <div
@@ -86,6 +100,7 @@ function TraceLog({ events }) {
             <span className="flow-log-detail">
               {evt.source} {"→"} {evt.target}
             </span>
+            {tokenStr && <span className="flow-log-tokens">{tokenStr} tok</span>}
             <span className="flow-log-duration">
               {isCompleted && evt.duration_ms != null
                 ? evt.duration_ms >= 1000

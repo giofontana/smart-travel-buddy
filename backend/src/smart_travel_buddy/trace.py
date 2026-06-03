@@ -24,12 +24,12 @@ class TraceEmitter:
             "request_id": self._request_id,
         })
 
-    async def end(self, source: str, target: str, label: str):
+    async def end(self, source: str, target: str, label: str, **extra):
         now = time.time()
         key = f"{target}->{source}"
         start_time = self._starts.pop(key, now)
         duration_ms = int((now - start_time) * 1000)
-        await self._broadcast("trace", {
+        data = {
             "source": source,
             "target": target,
             "status": "completed",
@@ -37,4 +37,6 @@ class TraceEmitter:
             "timestamp": now,
             "duration_ms": duration_ms,
             "request_id": self._request_id,
-        })
+            **extra,
+        }
+        await self._broadcast("trace", data)

@@ -22,7 +22,7 @@ export function useTraceEvents(lastMessage) {
 
     const evt = lastMessage;
 
-    setEvents((prev) => [...prev].slice(-19).concat(evt));
+    setEvents((prev) => [...prev, evt]);
 
     if (evt.status === "started") {
       if (!startTime) setStartTime(Date.now());
