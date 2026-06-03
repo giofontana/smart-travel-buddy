@@ -1,15 +1,5 @@
 import { useState, useEffect } from "react";
 
-const COMPONENTS = [
-  { id: "user", icon: "\u{1F464}", label: "User" },
-  { id: "backend", icon: "⚙️", label: "Backend" },
-  { id: "llm", icon: "\u{1F9E0}", label: "LLM" },
-  { id: "mcp-weather", icon: "\u{1F324}", label: "Weather" },
-  { id: "mcp-currency", icon: "\u{1F4B1}", label: "Currency" },
-  { id: "mcp-wikipedia", icon: "\u{1F4DA}", label: "Wikipedia" },
-  { id: "rag", icon: "\u{1F5C4}️", label: "RAG" },
-];
-
 function ComponentBox({ id, icon, label, activeConnections, completedConnections }) {
   const isSource = activeConnections.some((c) => c.source === id);
   const isTarget = activeConnections.some((c) => c.target === id);
