@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { flushSync } from "react-dom";
 
 export function useWebSocket(url) {
   const [connected, setConnected] = useState(false);
@@ -18,7 +19,7 @@ export function useWebSocket(url) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        setLastMessage(data);
+        flushSync(() => setLastMessage(data));
       } catch (e) {
         console.error("Failed to parse WebSocket message:", e);
       }
