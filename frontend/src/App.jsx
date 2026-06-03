@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useTraceEvents } from "./hooks/useTraceEvents";
 import ChatPanel from "./components/ChatPanel";
 import ItineraryView from "./components/ItineraryView";
 import ProgressCards from "./components/ProgressCards";
+import FlowOverlay from "./components/FlowOverlay";
+import FlowToggle from "./components/FlowToggle";
 
 const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
 
@@ -13,7 +16,12 @@ export default function App() {
   const [progress, setProgress] = useState([]);
   const [phase, setPhase] = useState("interview");
 
+  const [flowOpen, setFlowOpen] = useState(() => {
+    try { return localStorage.getItem("flow-overlay") === "open"; } catch { return false; }
+  });
+
   const { connected, lastMessage, send } = useWebSocket(WS_URL);
+  const traceState = useTraceEvents(lastMessage);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -51,12 +59,21 @@ export default function App() {
 
   const handleSend = useCallback(
     (content) => {
+      traceState.reset();
       setMessages((prev) => [...prev, { role: "user", content }]);
       setIsProcessing(true);
       send({ action: "message", content });
     },
-    [send]
+    [send, traceState]
   );
+
+  const handleFlowToggle = useCallback(() => {
+    setFlowOpen((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("flow-overlay", next ? "open" : "closed"); } catch {}
+      return next;
+    });
+  }, []);
 
   return (
     <div className="h-screen flex">
@@ -88,6 +105,15 @@ export default function App() {
           </div>
         )}
       </div>
+
+      <FlowToggle isOpen={flowOpen} onToggle={handleFlowToggle} />
+      <FlowOverlay
+        isOpen={flowOpen}
+        events={traceState.events}
+        activeConnections={traceState.activeConnections}
+        completedConnections={traceState.completedConnections}
+        startTime={traceState.startTime}
+      />
     </div>
   );
 }
