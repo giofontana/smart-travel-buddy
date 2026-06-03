@@ -15,22 +15,22 @@ Communication between frontend and backend happens over WebSocket, with live pro
 ## Architecture
 
 ```
-┌──────────┐  WebSocket   ┌──────────────────────────────────────────┐
-│ React UI ├─────────────►│ FastAPI Backend                          │
-│ (Vite)   │◄─────────────┤                                          │
+┌──────────┐  WebSocket   ┌───────────────────────────────────────────┐
+│ React UI ├─────────────►│ FastAPI Backend                           │
+│ (Vite)   │◄─────────────┤                                           │
 └──────────┘              │  ┌──────────────────────────────────────┐ │
                           │  │ LangGraph Orchestrator               │ │
-                          │  │  ┌───────────┐ ┌──────────┐ ┌─────┐ │ │
-                          │  │  │ Interview │►│ Research  │►│Itin.│ │ │
-                          │  │  └───────────┘ └────┬─────┘ └─────┘ │ │
-                          │  └─────────────────────┼───────────────┘ │
-                          │                        │                 │
-                          │  ┌─────────┬───────────┼──────────┐     │
-                          │  │         │           │          │     │
-                          │  ▼         ▼           ▼          ▼     │
-                          │ MCP      MCP         MCP        RAG    │
-                          │ Weather  Currency    Wikipedia  pgvector│
-                          └──────────────────────────────────────────┘
+                          │  │  ┌───────────┐ ┌──────────┐ ┌──────┐ │ │
+                          │  │  │ Interview │►│ Research │►│Itin. │ │ │
+                          │  │  └───────────┘ └────┬─────┘ └──────┘ │ │
+                          │  └─────────────────────┼────────────────┘ │
+                          │                        │                  │
+                          │  ┌─────────┬───────────┼──────────┐       │
+                          │  │         │           │          │       │
+                          │  ▼         ▼           ▼          ▼       │
+                          │ MCP      MCP         MCP        RAG       │
+                          │ Weather  Currency    Wikipedia  pgvector  │
+                          └───────────────────────────────────────────┘
 ```
 
 ## Tech Stack
@@ -104,6 +104,12 @@ OPENWEATHERMAP_API_KEY=your-key-here
 
 ```bash
 make build
+```
+
+Note: Use `REGISTRY` variable to build the image in a custom registry. Example:
+
+```bash
+REGISTRY=quay.io/gfontana make build
 ```
 
 ### 3. Start all services
