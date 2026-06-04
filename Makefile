@@ -132,7 +132,7 @@ lint:
 # ── Deploy ───────────────────────────────────────────────────────
 
 deploy:
-	oc apply -k gitops/overlays/dev/
+	oc apply -k gitops/overlays/dev/container/
 
 # ── Cleanup ──────────────────────────────────────────────────────
 

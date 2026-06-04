@@ -2,11 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
-  - configmap.yaml
-  - postgresql-secret.yaml
-  - api-keys-secret.yaml
-  - route.yaml
+  - ../../../base
+  - ../../../base/postgresql-vm
+  - ../shared
 
 images:
   - name: smart-travel-buddy/backend

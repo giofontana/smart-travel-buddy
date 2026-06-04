@@ -1,0 +1,79 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: postgresql-vm
+  namespace: smart-travel-buddy
+  labels:
+    app: postgresql
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app: postgresql
+    spec:
+      domain:
+        cpu:
+          cores: 2
+        memory:
+          guest: 4Gi
+        devices:
+          disks:
+            - bootOrder: 1
+              disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - masquerade: {}
+              model: virtio
+              name: default
+              ports:
+                - port: 5432
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - dataVolume:
+            name: postgresql-vm-rootdisk
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              user: fedora
+              password: fedora
+              chpasswd:
+                expire: false
+              packages:
+                - postgresql-server
+                - postgresql-contrib
+                - pgvector
+                - firewalld
+              runcmd:
+                - postgresql-setup --initdb
+                - sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /var/lib/pgsql/data/postgresql.conf
+                - echo "host all all 0.0.0.0/0 md5" >> /var/lib/pgsql/data/pg_hba.conf
+                - systemctl enable --now postgresql
+                - sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+                - sudo -u postgres psql -c "CREATE DATABASE travel_agent_db;"
+                - sudo -u postgres psql -c "CREATE EXTENSION IF NOT EXISTS vector;" -d travel_agent_db
+                - systemctl enable --now firewalld
+                - firewall-cmd --permanent --add-port=5432/tcp
+                - firewall-cmd --reload
+          name: cloudinitdisk
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: postgresql-vm-rootdisk
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi

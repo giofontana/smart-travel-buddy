@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../base
+  - ../../../base/postgresql-container
+  - ../shared
+
+images:
+  - name: smart-travel-buddy/backend
+    newName: quay.io/gfontana/smart-travel-buddy-backend
+  - name: smart-travel-buddy/frontend
+    newName: quay.io/gfontana/smart-travel-buddy-frontend
+  - name: smart-travel-buddy/mcp-currency
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-currency
+  - name: smart-travel-buddy/mcp-weather
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-weather
+  - name: smart-travel-buddy/mcp-wikipedia
+    newName: quay.io/gfontana/smart-travel-buddy-mcp-wikipedia
+
+patches:
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: DEBUG
+          value: "true"
