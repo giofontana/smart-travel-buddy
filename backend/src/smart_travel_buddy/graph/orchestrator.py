@@ -129,6 +129,23 @@ class Orchestrator:
                         }]
                     })
 
+                usage = getattr(last_msg, "usage_metadata", None)
+                if usage:
+                    input_tokens = usage.get("input_tokens", 0)
+                    output_tokens = usage.get("output_tokens", 0)
+                    span.set_attribute("mlflow.chat.tokenUsage", {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": usage.get("total_tokens", input_tokens + output_tokens),
+                    })
+                    input_cost = input_tokens * settings.llm_input_token_cost / 1_000_000
+                    output_cost = output_tokens * settings.llm_output_token_cost / 1_000_000
+                    span.set_attribute("mlflow.llm.cost", {
+                        "input_cost": input_cost,
+                        "output_cost": output_cost,
+                        "total_cost": input_cost + output_cost,
+                    })
+
             log_run_metrics({
                 "total_duration_s": time.time() - start_time,
                 "message_count": float(len(self.state["messages"])),

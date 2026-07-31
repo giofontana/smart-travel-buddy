@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     mlflow_tracking_token: str = ""
     mlflow_workspace: str = ""
 
+    # LLM token cost per 1M tokens (USD)
+    llm_input_token_cost: float = 1.0
+    llm_output_token_cost: float = 3.0
+
     model_config = {
         "env_file": ".env",
     }
