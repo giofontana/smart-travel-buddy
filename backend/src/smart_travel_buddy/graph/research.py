@@ -6,6 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
 
 from smart_travel_buddy.graph.state import TravelState
+from smart_travel_buddy.mlflow_utils import mlflow_span
 
 
 # Mapping of country names to currency codes
@@ -191,7 +192,13 @@ async def call_weather(state: TravelState, config: RunnableConfig) -> dict[str, 
         if trace:
             await trace.start("backend", "mcp-weather", f"Querying weather for {destination}")
 
-        result = await weather_tool.ainvoke(tool_input)
+        with mlflow_span("mcp-weather-forecast", attributes={
+            "tool.name": weather_tool.name,
+            "tool.input.city": city,
+            "tool.input.country_code": country_code,
+            "tool.input.days": str(days),
+        }):
+            result = await weather_tool.ainvoke(tool_input)
 
         if trace:
             await trace.end("mcp-weather", "backend", f"Weather data received for {destination}")
@@ -257,7 +264,12 @@ async def call_currency(state: TravelState, config: RunnableConfig) -> dict[str,
         if trace:
             await trace.start("backend", "mcp-currency", f"Querying exchange rate for {destination}")
 
-        result = await currency_tool.ainvoke(tool_input)
+        with mlflow_span("mcp-currency-exchange", attributes={
+            "tool.name": currency_tool.name,
+            "tool.input.from_currency": "USD",
+            "tool.input.to_currency": to_currency,
+        }):
+            result = await currency_tool.ainvoke(tool_input)
 
         if trace:
             await trace.end("mcp-currency", "backend", f"Exchange rate received for {destination}")
@@ -320,7 +332,11 @@ async def call_wikipedia(state: TravelState, config: RunnableConfig) -> dict[str
         if trace:
             await trace.start("backend", "mcp-wikipedia", f"Querying Wikipedia for {destination}")
 
-        result = await wikipedia_tool.ainvoke(tool_input)
+        with mlflow_span("mcp-wikipedia-summary", attributes={
+            "tool.name": wikipedia_tool.name,
+            "tool.input.topic": city,
+        }):
+            result = await wikipedia_tool.ainvoke(tool_input)
 
         if trace:
             await trace.end("mcp-wikipedia", "backend", f"Wikipedia data received for {destination}")
@@ -373,17 +389,19 @@ async def call_rag(state: TravelState, config: RunnableConfig) -> dict[str, Any]
     rag_context = ""
     if db_session:
         try:
-            # Import retriever
             from smart_travel_buddy.rag.retriever import retrieve_context
 
-            # Build query from destination and interests
             query = f"{destination} {' '.join(interests)}"
 
-            # Retrieve context
-            chunks = await retrieve_context(db_session, query, k=5)
-            rag_context = "\n\n".join(chunks)
+            with mlflow_span("rag-retrieval", span_type="RETRIEVER", attributes={
+                "retriever.query": query,
+                "retriever.top_k": "5",
+            }) as span:
+                chunks = await retrieve_context(db_session, query, k=5)
+                rag_context = "\n\n".join(chunks)
+                if span:
+                    span.set_attributes({"retriever.chunks_returned": str(len(chunks))})
         except Exception as e:
-            # If RAG fails, continue without context
             rag_context = f"RAG retrieval failed: {str(e)}"
 
     if trace:

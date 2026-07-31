@@ -6,3 +6,7 @@ metadata:
 data:
   llm-model: "qwen3-14b-fp8"
   llm-base-url: "https://qwen3-14b-fp8-llm-models.apps.simpsons.lab.gfontana.me/v1"
+  mlflow-tracking-uri: "https://rh-ai.apps.simpsons.lab.gfontana.me/mlflow/"
+  mlflow-experiment-name: "smart-travel-buddy"
+  mlflow-tracking-auth: "kubernetes-namespaced"
+  mlflow-workspace: "smart-travel-buddy"

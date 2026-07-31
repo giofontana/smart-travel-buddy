@@ -1,13 +1,13 @@
 """Wikipedia MCP server implementation."""
 
 import json
+import os
 import re
 
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-# Initialize FastMCP server
-mcp = FastMCP("wikipedia", host="0.0.0.0")
+mcp = FastMCP("wikipedia", host="0.0.0.0", port=int(os.environ.get("FASTMCP_PORT", "8000")))
 
 # Constants
 USER_AGENT = "SmartTravelBuddy/1.0"

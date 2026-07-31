@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     # External API keys
     openweathermap_api_key: str = ""
 
+    # MLflow settings (optional - disabled when tracking_uri is empty)
+    mlflow_tracking_uri: str = ""
+    mlflow_experiment_name: str = "smart-travel-buddy"
+    mlflow_tracking_auth: str = ""
+    mlflow_tracking_token: str = ""
+    mlflow_workspace: str = ""
+
     model_config = {
         "env_file": ".env",
     }

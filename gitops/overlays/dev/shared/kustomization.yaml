@@ -5,3 +5,4 @@ resources:
   - postgresql-secret.yaml
   - api-keys-secret.yaml
   - route.yaml
+  - mlflow-rolebinding.yaml

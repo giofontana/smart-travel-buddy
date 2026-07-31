@@ -49,6 +49,36 @@ spec:
                 secretKeyRef:
                   name: api-keys
                   key: llm-api-key
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mlflow-tracking-uri
+                  optional: true
+            - name: MLFLOW_EXPERIMENT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mlflow-experiment-name
+                  optional: true
+            - name: MLFLOW_TRACKING_AUTH
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mlflow-tracking-auth
+                  optional: true
+            - name: MLFLOW_TRACKING_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mlflow-tracking-token
+                  optional: true
+            - name: MLFLOW_WORKSPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: mlflow-workspace
+                  optional: true
           resources:
             requests:
               memory: 512Mi

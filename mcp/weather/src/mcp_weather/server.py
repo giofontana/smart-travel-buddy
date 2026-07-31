@@ -8,7 +8,7 @@ from datetime import datetime
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("weather", host="0.0.0.0")
+mcp = FastMCP("weather", host="0.0.0.0", port=int(os.environ.get("FASTMCP_PORT", "8000")))
 
 
 def _get_api_key() -> str:

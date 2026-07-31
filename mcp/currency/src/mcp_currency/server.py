@@ -1,11 +1,12 @@
 """Currency MCP server using Frankfurter API."""
 
 import json
+import os
 
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("currency", host="0.0.0.0")
+mcp = FastMCP("currency", host="0.0.0.0", port=int(os.environ.get("FASTMCP_PORT", "8000")))
 
 
 @mcp.tool()

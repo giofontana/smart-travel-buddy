@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import Any, Callable, Coroutine
 
@@ -7,6 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from smart_travel_buddy.config import settings
 from smart_travel_buddy.graph.state import TravelState
+from smart_travel_buddy.mlflow_utils import mlflow_run, log_run_metrics
 from smart_travel_buddy.trace import TraceEmitter
 from smart_travel_buddy.graph.interview import build_interview_graph, should_continue_interview
 from smart_travel_buddy.graph.research import (
@@ -89,17 +91,49 @@ class Orchestrator:
         self.state["messages"] = list(self.state["messages"]) + [HumanMessage(content=user_message)]
         trace = TraceEmitter(self.broadcast)
 
-        await trace.start("user", "backend", f"Message received: {user_message[:50]}")
+        start_time = time.time()
 
-        if self.state["phase"] == "interview":
-            await self._run_interview(trace)
-        elif self.state["phase"] == "research":
-            await self._run_research(trace)
-            await self._run_itinerary(trace)
-        elif self.state["phase"] == "refinement":
-            await self._run_refinement(user_message, trace)
+        with mlflow_run(self.session_id, self.state, request=user_message) as span:
+            await trace.start("user", "backend", f"Message received: {user_message[:50]}")
 
-        await trace.end("backend", "user", "Response sent")
+            if self.state["phase"] == "interview":
+                await self._run_interview(trace)
+            elif self.state["phase"] == "research":
+                await self._run_research(trace)
+                await self._run_itinerary(trace)
+            elif self.state["phase"] == "refinement":
+                await self._run_refinement(user_message, trace)
+
+            await trace.end("backend", "user", "Response sent")
+
+            if span:
+                last_msg = self.state["messages"][-1]
+                response = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+                import re
+                think_match = re.search(r"<think>(.*?)</think>", response, flags=re.DOTALL)
+                if think_match:
+                    clean = re.sub(r"<think>.*?</think>\s*", "", response, flags=re.DOTALL)
+                    span.set_outputs({
+                        "choices": [{
+                            "message": {
+                                "role": "assistant",
+                                "content": clean,
+                                "reasoning": think_match.group(1).strip(),
+                            }
+                        }]
+                    })
+                else:
+                    span.set_outputs({
+                        "choices": [{
+                            "message": {"role": "assistant", "content": response}
+                        }]
+                    })
+
+            log_run_metrics({
+                "total_duration_s": time.time() - start_time,
+                "message_count": float(len(self.state["messages"])),
+                "research_sources": float(len(self.state.get("research_results", {}))),
+            })
 
     async def _run_interview(self, trace):
         config = {
