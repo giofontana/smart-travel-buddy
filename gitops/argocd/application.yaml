@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workloads
+  namespace: openshift-gitops
+spec:
+  description: Security boundary for the engineering team applications.
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: smart-travel-buddy
+  namespace: openshift-gitops
+spec:
+  project: workloads
+  source:
+    repoURL: https://github.com/giofontana/smart-travel-buddy.git
+    targetRevision: HEAD
+    path: gitops/overlays/dev/mixed
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: smart-travel-buddy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
