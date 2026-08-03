@@ -21,7 +21,7 @@ async def get_exchange_rate(from_currency: str, to_currency: str) -> str:
     Returns:
         JSON string containing from, to, rate, and date
     """
-    url = f"https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}"
+    url = f"https://api.frankfurter.dev/v1/latest?from={from_currency}&to={to_currency}"
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.get(url)
@@ -53,7 +53,7 @@ async def convert(amount: float, from_currency: str, to_currency: str) -> str:
     Returns:
         JSON string containing amount, from, to, converted, rate, and date
     """
-    url = f"https://api.frankfurter.app/latest?amount={amount}&from={from_currency}&to={to_currency}"
+    url = f"https://api.frankfurter.dev/v1/latest?amount={amount}&from={from_currency}&to={to_currency}"
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.get(url)

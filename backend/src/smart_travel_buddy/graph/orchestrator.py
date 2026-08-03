@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 
 from smart_travel_buddy.config import settings
+from smart_travel_buddy.database import async_session_factory
 from smart_travel_buddy.graph.state import TravelState
 from smart_travel_buddy.mlflow_utils import mlflow_run, log_run_metrics
 from smart_travel_buddy.trace import TraceEmitter
@@ -185,31 +186,32 @@ class Orchestrator:
         if not self.mcp_client:
             await self._init_mcp_client()
 
-        config = {
-            "configurable": {
-                "mcp_tools": await self._get_mcp_tools(),
-                "broadcast": self._broadcast_wrapper,
-                "db_session": None,
-                "trace": trace,
+        async with async_session_factory() as db_session:
+            config = {
+                "configurable": {
+                    "mcp_tools": await self._get_mcp_tools(),
+                    "broadcast": self._broadcast_wrapper,
+                    "db_session": db_session,
+                    "trace": trace,
+                }
             }
-        }
 
-        import asyncio
+            import asyncio
 
-        weather_result, currency_result, wikipedia_result = await asyncio.gather(
-            call_weather(self.state, config),
-            call_currency(self.state, config),
-            call_wikipedia(self.state, config),
-        )
+            weather_result, currency_result, wikipedia_result = await asyncio.gather(
+                call_weather(self.state, config),
+                call_currency(self.state, config),
+                call_wikipedia(self.state, config),
+            )
 
-        self.state["research_results"] = {
-            **weather_result.get("research_results", {}),
-            **currency_result.get("research_results", {}),
-            **wikipedia_result.get("research_results", {}),
-        }
+            self.state["research_results"] = {
+                **weather_result.get("research_results", {}),
+                **currency_result.get("research_results", {}),
+                **wikipedia_result.get("research_results", {}),
+            }
 
-        rag_result = await call_rag(self.state, config)
-        self.state["research_results"]["rag_context"] = rag_result["research_results"].get("rag_context", "")
+            rag_result = await call_rag(self.state, config)
+            self.state["research_results"]["rag_context"] = rag_result["research_results"].get("rag_context", "")
 
     async def _run_itinerary(self, trace):
         config = {

@@ -41,15 +41,17 @@ async def retrieve_chunks(
             source_file,
             chunk_text,
             metadata,
-            1 - (embedding <=> :embedding::vector) AS similarity
+            1 - (embedding <=> CAST(:embedding AS vector)) AS similarity
         FROM knowledge_chunks
-        ORDER BY embedding <=> :embedding::vector
+        ORDER BY embedding <=> CAST(:embedding AS vector)
         LIMIT :top_k
     """)
 
+    embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+
     result = await session.execute(
         sql_query,
-        {"embedding": query_embedding, "top_k": top_k},
+        {"embedding": embedding_str, "top_k": top_k},
     )
 
     rows = result.fetchall()
