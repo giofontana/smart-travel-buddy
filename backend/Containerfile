@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir .
 COPY alembic/ alembic/
 COPY alembic/alembic.ini .
 
+ENV HF_HOME=/tmp/hf_cache
+
 EXPOSE 8000
 
 CMD ["python", "-m", "smart_travel_buddy"]
