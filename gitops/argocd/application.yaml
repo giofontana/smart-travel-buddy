@@ -32,6 +32,11 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
+      syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true      
+  ignoreDifferences:
+    - group: kubevirt.io
+      kind: VirtualMachine
+      jsonPointers:
+        - /spec/template/spec/domain/devices/interfaces/0/macAddress

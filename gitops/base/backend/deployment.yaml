@@ -49,6 +49,8 @@ spec:
                 secretKeyRef:
                   name: api-keys
                   key: llm-api-key
+            - name: GIT_PYTHON_REFRESH
+              value: "quiet"
             - name: MLFLOW_TRACKING_URI
               valueFrom:
                 configMapKeyRef:
