@@ -1,0 +1,99 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "smart_travel_buddy.server:app",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--reload"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/backend/src",
+        "DEBUG": "true"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "MCP Weather",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "mcp_weather",
+      "cwd": "${workspaceFolder}/mcp/weather",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/mcp/weather/src",
+        "FASTMCP_PORT": "8001"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "MCP Currency",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "mcp_currency",
+      "cwd": "${workspaceFolder}/mcp/currency",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/mcp/currency/src",
+        "FASTMCP_PORT": "8002"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "MCP Wikipedia",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "mcp_wikipedia",
+      "cwd": "${workspaceFolder}/mcp/wikipedia",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/mcp/wikipedia/src",
+        "FASTMCP_PORT": "8003"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Frontend (npm dev)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Backend Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/backend/src"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack",
+      "configurations": [
+        "Backend",
+        "MCP Weather",
+        "MCP Currency",
+        "MCP Wikipedia",
+        "Frontend (npm dev)"
+      ]
+    }
+  ]
+}

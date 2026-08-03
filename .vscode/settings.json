@@ -1,0 +1,18 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/backend/src",
+    "${workspaceFolder}/mcp/weather/src",
+    "${workspaceFolder}/mcp/currency/src",
+    "${workspaceFolder}/mcp/wikipedia/src"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "backend/tests"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  },
+  "ruff.configuration": "${workspaceFolder}/backend/pyproject.toml"
+}

@@ -32,7 +32,6 @@ htmlcov/
 .tox/
 
 # IDEs
-.vscode/
 .idea/
 *.swp
 *.swo
