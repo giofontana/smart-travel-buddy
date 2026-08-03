@@ -117,7 +117,11 @@
 
 14. **Briefly show the Application on ArgoCD:**
 
-    **Say:** "And here is the ArgoCD application, where you can see all application components, including the VM! All deployed and managed through ArgoCD. If someone by any reason 
+    **Say:** "And here is the ArgoCD application, where you can see all application components, including the VM! All deployed and managed through ArgoCD. If someone by any reason makes a mistake, ArgoCD will detect it and revert to the desired state.
+
+    - On OpenShift delete the backend-config ConfigMap and sync the ArgoCD app. Show that the CM is reverted back.
+
+    **Say:** "As you can see, ArgoCD was able to detect the change and revert back to the desired state."
 
 ### Show MLflow (optional, if time permits)
 
