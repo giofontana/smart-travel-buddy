@@ -1,8 +1,8 @@
-# Building AI Agents on Red Hat OpenShift -- Speaker Notes
+# Building AI Agents on Red Hat OpenShift
 
 # Demo Narrative
 
-**Duration:** ~15 minutes
+**Duration:** ~20 minutes
 **Goal:** Show Smart Travel Buddy running live on OpenShift, highlighting agentic AI, MCP tools, RAG, and the unified container+VM platform.
 
 ## Pre-Demo Setup Checklist

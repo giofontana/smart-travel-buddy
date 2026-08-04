@@ -131,8 +131,11 @@ lint:
 
 # ── Deploy ───────────────────────────────────────────────────────
 
-deploy:
+deploy-container:
 	oc apply -k gitops/overlays/dev/container/
+
+deploy-with-vm:
+	oc apply -k gitops/overlays/dev/mixed/
 
 # ── Cleanup ──────────────────────────────────────────────────────
 
