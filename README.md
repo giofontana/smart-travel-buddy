@@ -203,6 +203,18 @@ oc create secret generic api-keys \
   -n smart-travel-buddy
 ```
 
+Then, create the config map:
+
+```bash
+oc create configmap backend-config -n smart-travel-buddy \
+  --from-literal=llm-model=your-model \
+  --from-literal=llm-base-url=https://<llm-endpoin>/v1 \
+  --from-literal=mlflow-tracking-uri=https://rh-ai.apps.<openshift-domain>/mlflow/ \
+  --from-literal=mlflow-experiment-name=smart-travel-buddy \
+  --from-literal=mlflow-tracking-auth=kubernetes-namespaced \
+  --from-literal=mlflow-workspace=smart-travel-buddy
+```
+
 Then deploy:
 
 ```bash
