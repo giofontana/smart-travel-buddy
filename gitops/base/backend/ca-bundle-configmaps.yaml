@@ -1,0 +1,18 @@
+# Populated by OpenShift: the cluster trusted CA bundle (public + proxy CAs)
+# and the service CA used by in-cluster services such as the KServe predictor.
+# The backend init container concatenates both into a single bundle.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-trusted-ca
+  namespace: smart-travel-buddy
+  labels:
+    config.openshift.io/inject-trusted-cabundle: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-service-ca
+  namespace: smart-travel-buddy
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"

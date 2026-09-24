@@ -13,6 +13,19 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: build-ca-bundle
+          image: smart-travel-buddy/backend:latest
+          command:
+            - sh
+            - -c
+            - cat /ca-sources/ca-bundle.crt /ca-sources/service-ca.crt > /ca-bundle/ca-bundle.pem
+          volumeMounts:
+            - name: ca-sources
+              mountPath: /ca-sources
+              readOnly: true
+            - name: ca-bundle
+              mountPath: /ca-bundle
       containers:
         - name: backend
           image: smart-travel-buddy/backend:latest
@@ -81,6 +94,14 @@ spec:
                   name: backend-config
                   key: mlflow-workspace
                   optional: true
+            - name: SSL_CERT_FILE
+              value: /ca-bundle/ca-bundle.pem
+            - name: REQUESTS_CA_BUNDLE
+              value: /ca-bundle/ca-bundle.pem
+          volumeMounts:
+            - name: ca-bundle
+              mountPath: /ca-bundle
+              readOnly: true
           resources:
             requests:
               memory: 512Mi
@@ -88,3 +109,13 @@ spec:
             limits:
               memory: 1Gi
               cpu: 1000m
+      volumes:
+        - name: ca-sources
+          projected:
+            sources:
+              - configMap:
+                  name: backend-trusted-ca
+              - configMap:
+                  name: backend-service-ca
+        - name: ca-bundle
+          emptyDir: {}
