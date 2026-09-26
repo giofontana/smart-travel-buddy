@@ -41,6 +41,14 @@ function inlineMarkdown(text) {
     .replace(/\n/g, "<br/>");
 }
 
+// Hide the interview's {"ready": ...} state block, fenced or bare, which is meant for the backend only
+function stripReadyBlock(text) {
+  return text
+    .replace(/```\w*\s*\{[^`]*?"ready"[^`]*```/g, "")
+    .replace(/\{\s*"ready"\s*:[\s\S]*$/, "")
+    .trimEnd();
+}
+
 function parseThinking(content) {
   const thinkRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
   const parts = [];
@@ -64,7 +72,11 @@ function parseThinking(content) {
 
 export default function MessageBubble({ role, content }) {
   const isUser = role === "user";
-  const parts = isUser ? [{ type: "text", content }] : parseThinking(content);
+  const parts = isUser
+    ? [{ type: "text", content }]
+    : parseThinking(content).map((part) =>
+        part.type === "text" ? { ...part, content: stripReadyBlock(part.content) } : part
+      );
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
