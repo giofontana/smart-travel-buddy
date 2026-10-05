@@ -1,0 +1,55 @@
+---
+# Step 2: install the OpenShift GitOps operator and wait for the default Argo CD instance.
+- name: Deploy the OpenShift GitOps operator
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Create the operator namespace, OperatorGroup and Subscription
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('ansible.builtin.template', templates_dir ~ '/gitops-subscription.yaml.j2') | from_yaml_all | list }}"
+
+    - name: Wait for the Subscription to resolve an operator version
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        name: openshift-gitops-operator
+        namespace: openshift-gitops-operator
+      register: gitops_sub
+      until: gitops_sub.resources[0].status.installedCSV is defined
+      retries: "{{ (gitops_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the operator install to succeed
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        name: "{{ gitops_sub.resources[0].status.installedCSV }}"
+        namespace: openshift-gitops-operator
+      register: gitops_csv
+      until: (gitops_csv.resources | length > 0) and (gitops_csv.resources[0].status.phase | default('') == 'Succeeded')
+      retries: "{{ (gitops_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the default Argo CD instance to be created
+      kubernetes.core.k8s_info:
+        api_version: argoproj.io/v1beta1
+        kind: ArgoCD
+        name: openshift-gitops
+        namespace: openshift-gitops
+      register: argocd
+      until: argocd.resources | length > 0
+      retries: "{{ (gitops_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the Argo CD server to be available
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: openshift-gitops-server
+        namespace: openshift-gitops
+      register: argocd_server
+      until: (argocd_server.resources | length > 0) and (argocd_server.resources[0].status.availableReplicas | default(0) > 0)
+      retries: "{{ (gitops_timeout | int / 10) | int }}"
+      delay: 10

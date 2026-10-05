@@ -1,0 +1,12 @@
+---
+# Step 3: create the cluster-admins group with the admin user. OpenShift GitOps grants
+# Argo CD admin to this group by default.
+- name: Create the cluster-admins group
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Create the group and bind it to cluster-admin
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('ansible.builtin.template', templates_dir ~ '/cluster-admins-group.yaml.j2') | from_yaml_all | list }}"

@@ -1,0 +1,77 @@
+---
+# Step 4: enable the MLflow operator in OpenShift AI and create the MLflow instance.
+- name: Deploy MLflow
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the DataScienceCluster CRD
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        name: datascienceclusters.datasciencecluster.opendatahub.io
+      register: dsc_crd
+
+    # Patch through the storage version so the mlflowoperator field is not pruned
+    # by an older API version.
+    - name: Enable the MLflow operator component
+      vars:
+        dsc_version: "{{ dsc_crd.resources[0].spec.versions | selectattr('storage') | map(attribute='name') | first }}"
+      kubernetes.core.k8s:
+        state: patched
+        merge_type: merge
+        definition:
+          apiVersion: "datasciencecluster.opendatahub.io/{{ dsc_version }}"
+          kind: DataScienceCluster
+          metadata:
+            name: "{{ dsc_name }}"
+          spec:
+            components:
+              mlflowoperator:
+                managementState: Managed
+
+    - name: Wait for the MLflow CRD to be installed
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        name: mlflows.mlflow.opendatahub.io
+      register: mlflow_crd
+      until: >-
+        (mlflow_crd.resources | length > 0) and
+        (mlflow_crd.resources[0].status.conditions | default([])
+          | selectattr('type', 'equalto', 'Established')
+          | selectattr('status', 'equalto', 'True') | list | length > 0)
+      retries: "{{ (mlflow_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Create the MLflow instance
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('ansible.builtin.template', templates_dir ~ '/mlflow.yaml.j2') | from_yaml }}"
+      register: mlflow_cr
+      # Retry while the API server starts serving the new CRD.
+      until: mlflow_cr is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Wait for MLflow to be ready
+      block:
+        - name: Wait for the MLflow instance to report Ready or Available
+          kubernetes.core.k8s_info:
+            api_version: mlflow.opendatahub.io/v1
+            kind: MLflow
+            name: mlflow
+            namespace: "{{ mlflow_namespace }}"
+          register: mlflow_status
+          until: >-
+            mlflow_status.resources[0].status.conditions | default([])
+              | selectattr('type', 'in', ['Ready', 'Available'])
+              | selectattr('status', 'equalto', 'True') | list | length > 0
+          retries: "{{ (mlflow_timeout | int / 10) | int }}"
+          delay: 10
+      rescue:
+        - name: Warn that MLflow readiness could not be confirmed
+          ansible.builtin.debug:
+            msg: >-
+              The MLflow instance was created but has not reported Ready. Check it with
+              `oc get mlflow mlflow -n {{ mlflow_namespace }} -o yaml`. Continuing.

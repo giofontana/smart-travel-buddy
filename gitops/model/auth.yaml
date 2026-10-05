@@ -1,0 +1,54 @@
+# Same objects the OpenShift AI dashboard creates for "Require token authentication".
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: redhataigemma-4-12b-it-fp8-dyn-sa
+  namespace: smart-travel-buddy
+  labels:
+    opendatahub.io/dashboard: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: redhataigemma-4-12b-it-fp8-dyn-view-role
+  namespace: smart-travel-buddy
+  labels:
+    opendatahub.io/dashboard: "true"
+rules:
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - inferenceservices
+    resourceNames:
+      - redhataigemma-4-12b-it-fp8-dyn
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: redhataigemma-4-12b-it-fp8-dyn-view
+  namespace: smart-travel-buddy
+  labels:
+    opendatahub.io/dashboard: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: redhataigemma-4-12b-it-fp8-dyn-view-role
+subjects:
+  - kind: ServiceAccount
+    name: redhataigemma-4-12b-it-fp8-dyn-sa
+    namespace: smart-travel-buddy
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: default-name-redhataigemma-4-12b-it-fp8-dyn-sa
+  namespace: smart-travel-buddy
+  labels:
+    opendatahub.io/dashboard: "true"
+  annotations:
+    kubernetes.io/service-account.name: redhataigemma-4-12b-it-fp8-dyn-sa
+    openshift.io/display-name: default-name
+

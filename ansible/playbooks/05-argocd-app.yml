@@ -1,0 +1,77 @@
+---
+# Step 5: create the Argo CD applications: smart-travel-buddy (AppProject + app) and
+# gemma-4-model (the Gemma 4 model). The app is applied first because it defines the
+# AppProject both applications use.
+- name: Deploy the Argo CD applications
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Download the Argo CD application manifests
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        return_content: true
+      loop:
+        - "{{ argocd_app_url }}"
+        - "{{ argocd_model_app_url }}"
+      register: argocd_manifests
+
+    - name: Apply the Argo CD applications
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ item.content | from_yaml_all | select | list }}"
+      loop: "{{ argocd_manifests.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: argocd_app
+      # Retry while the Argo CD CRDs are still being registered after the operator install.
+      until: argocd_app is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Wait for Argo CD to create the backend Deployment
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: backend
+        namespace: "{{ app_namespace }}"
+      register: backend_deployment
+      until: backend_deployment.resources | length > 0
+      retries: "{{ (argocd_app_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for Argo CD to create the Gemma 4 InferenceService
+      kubernetes.core.k8s_info:
+        api_version: serving.kserve.io/v1beta1
+        kind: InferenceService
+        name: "{{ model_name }}"
+        namespace: "{{ model_namespace }}"
+      register: model_isvc
+      until: model_isvc.resources | length > 0
+      retries: "{{ (argocd_app_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the model to be Ready (downloads the model image, can take a while)
+      kubernetes.core.k8s_info:
+        api_version: serving.kserve.io/v1beta1
+        kind: InferenceService
+        name: "{{ model_name }}"
+        namespace: "{{ model_namespace }}"
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_sleep: 15
+        wait_timeout: "{{ model_ready_timeout }}"
+
+    - name: Wait for the model API token to be issued
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "default-name-{{ model_name }}-sa"
+        namespace: "{{ model_namespace }}"
+      register: model_token_secret
+      until: (model_token_secret.resources | length > 0) and ('token' in (model_token_secret.resources[0].data | default({})))
+      retries: 30
+      delay: 5
+      no_log: true

@@ -1,0 +1,48 @@
+---
+# Step 9: delete the backend pod so it picks up the new Secret and ConfigMap.
+- name: Restart the Smart Travel Buddy backend
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Find the backend pods
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ app_namespace }}"
+        label_selectors:
+          - app=backend
+      register: old_pods
+
+    - name: Delete the backend pods
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Pod
+        name: "{{ item }}"
+        namespace: "{{ app_namespace }}"
+      loop: "{{ old_pods.resources | map(attribute='metadata.name') | list }}"
+
+    - name: Wait for the old backend pods to be gone
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ app_namespace }}"
+        label_selectors:
+          - app=backend
+      register: pods
+      until: >-
+        pods.resources | map(attribute='metadata.name')
+          | intersect(old_pods.resources | map(attribute='metadata.name')) | length == 0
+      retries: 30
+      delay: 5
+
+    - name: Wait for the new backend pod to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: backend
+        namespace: "{{ app_namespace }}"
+      register: backend
+      until: backend.resources[0].status.readyReplicas | default(0) >= backend.resources[0].spec.replicas
+      retries: "{{ (backend_restart_timeout | int / 10) | int }}"
+      delay: 10

@@ -1,0 +1,41 @@
+---
+# Playbooks run locally and talk to the cluster through the current `oc login` context.
+ansible_connection: local
+ansible_python_interpreter: "{{ ansible_playbook_python }}"
+templates_dir: "{{ inventory_dir }}/../templates"
+
+# ── Application ─────────────────────────────────────────────────
+app_namespace: smart-travel-buddy
+argocd_app_url: https://raw.githubusercontent.com/giofontana/smart-travel-buddy/refs/heads/master/gitops/argocd/application-container.yaml
+argocd_model_app_url: https://raw.githubusercontent.com/giofontana/smart-travel-buddy/refs/heads/master/gitops/argocd/application-model.yaml
+argocd_app_timeout: 900  # seconds to wait for Argo CD to create the backend Deployment and the model
+backend_restart_timeout: 600
+
+# OpenWeatherMap API key (https://openweathermap.org/). Leave empty to be prompted,
+# or pass it with: -e openweathermap_api_key=XXXX
+openweathermap_api_key: ""
+
+# ── Model (Gemma 4, deployed by the gemma-4-model Argo CD application) ──
+# Model settings (URI, resources, runtime image) live in gitops/model/. These values must
+# match the InferenceService there.
+model_namespace: "{{ app_namespace }}"
+model_name: redhataigemma-4-12b-it-fp8-dyn
+model_ready_timeout: 1800
+model_stop_timeout: 600  # seconds to wait for other running models to release the GPU
+
+# ── OpenShift GitOps ────────────────────────────────────────────
+gitops_channel: latest
+gitops_timeout: 900
+
+# ── Cluster admins ──────────────────────────────────────────────
+cluster_admin_group: cluster-admins
+cluster_admin_users:
+  - admin
+
+# ── MLflow ──────────────────────────────────────────────────────
+dsc_name: default-dsc
+mlflow_namespace: redhat-ods-applications
+mlflow_storage_size: 10Gi
+mlflow_timeout: 900
+mlflow_host_prefix: rh-ai  # MLflow URL: https://<prefix>.<cluster apps domain>/mlflow/
+mlflow_experiment_name: smart-travel-buddy

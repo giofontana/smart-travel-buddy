@@ -1,0 +1,22 @@
+# Gemma 4 model served by OpenShift AI. Uses the "workloads" AppProject defined in
+# application-container.yaml, so apply that file first.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gemma-4-model
+  namespace: openshift-gitops
+spec:
+  project: workloads
+  source:
+    repoURL: https://github.com/giofontana/smart-travel-buddy.git
+    targetRevision: HEAD
+    path: gitops/model
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: smart-travel-buddy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

@@ -1,0 +1,20 @@
+---
+# Last step: print the URL of the Smart Travel Buddy frontend.
+- name: Show the Smart Travel Buddy URL
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the frontend Route
+      kubernetes.core.k8s_info:
+        api_version: route.openshift.io/v1
+        kind: Route
+        name: frontend
+        namespace: "{{ app_namespace }}"
+      register: frontend_route
+      until: (frontend_route.resources | length > 0) and (frontend_route.resources[0].spec.host is defined)
+      retries: 30
+      delay: 10
+
+    - name: Print the frontend URL
+      ansible.builtin.debug:
+        msg: "Smart Travel Buddy agent is available at https://{{ frontend_route.resources[0].spec.host }}"

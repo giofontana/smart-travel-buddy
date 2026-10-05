@@ -1,0 +1,108 @@
+---
+# Steps 6-8: collect the OpenWeatherMap key, the Gemma 4 token and internal endpoint, then
+# create the api-keys Secret and backend-config ConfigMap used by the backend.
+- name: Configure Smart Travel Buddy
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Ask for the OpenWeatherMap API key
+      ansible.builtin.pause:
+        prompt: "OpenWeatherMap API key (https://openweathermap.org/)"
+        echo: false
+      register: owm_prompt
+      when: openweathermap_api_key | default('') | length == 0
+
+    - name: Use the entered OpenWeatherMap API key
+      ansible.builtin.set_fact:
+        openweathermap_api_key: "{{ owm_prompt.user_input }}"
+      when: owm_prompt is not skipped
+      no_log: true
+
+    - name: Check that the OpenWeatherMap API key is set
+      ansible.builtin.assert:
+        that:
+          - openweathermap_api_key | default('') | length > 0
+        fail_msg: An OpenWeatherMap API key is required.
+        quiet: true
+
+    - name: Read the Gemma 4 API token
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "default-name-{{ model_name }}-sa"
+        namespace: "{{ model_namespace }}"
+      register: model_token_secret
+      no_log: true
+
+    - name: Read the Gemma 4 InferenceService
+      kubernetes.core.k8s_info:
+        api_version: serving.kserve.io/v1beta1
+        kind: InferenceService
+        name: "{{ model_name }}"
+        namespace: "{{ model_namespace }}"
+      register: model_isvc
+
+    - name: Read the cluster apps domain
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: Ingress
+        name: cluster
+      register: cluster_ingress
+
+    - name: Check that the model token and internal endpoint are available
+      ansible.builtin.assert:
+        that:
+          - model_token_secret.resources | length > 0
+          - model_isvc.resources | length > 0
+          - model_isvc.resources[0].status.address.url is defined
+        fail_msg: >-
+          The model token or internal endpoint is missing. Run playbooks/05-argocd-app.yml
+          first and make sure the InferenceService is Ready.
+        quiet: true
+
+    - name: Collect the backend settings
+      ansible.builtin.set_fact:
+        llm_api_key: "{{ model_token_secret.resources[0].data.token | b64decode }}"
+        llm_base_url: "{{ model_isvc.resources[0].status.address.url | regex_replace('/+$', '') }}/v1"
+        mlflow_tracking_uri: "https://{{ mlflow_host_prefix }}.{{ cluster_ingress.resources[0].spec.domain }}/mlflow/"
+      no_log: true
+
+    - name: Create the api-keys Secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: Opaque
+          metadata:
+            name: api-keys
+            namespace: "{{ app_namespace }}"
+          stringData:
+            llm-api-key: "{{ llm_api_key }}"
+            openweathermap: "{{ openweathermap_api_key }}"
+      no_log: true
+
+    - name: Create the backend-config ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: backend-config
+            namespace: "{{ app_namespace }}"
+          data:
+            llm-model: "{{ model_name }}"
+            llm-base-url: "{{ llm_base_url }}"
+            mlflow-tracking-uri: "{{ mlflow_tracking_uri }}"
+            mlflow-experiment-name: "{{ mlflow_experiment_name }}"
+            mlflow-tracking-auth: kubernetes-namespaced
+            mlflow-workspace: "{{ app_namespace }}"
+
+    - name: Show the backend settings
+      ansible.builtin.debug:
+        msg:
+          - "LLM model:     {{ model_name }}"
+          - "LLM base URL:  {{ llm_base_url }}"
+          - "MLflow URI:    {{ mlflow_tracking_uri }}"

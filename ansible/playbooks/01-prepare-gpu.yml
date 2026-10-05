@@ -1,0 +1,103 @@
+---
+# Step 1: prepare the cluster for the Gemma 4 model, which is deployed by the gemma-4-model
+# Argo CD application in step 5. The cluster has a single GPU, so any other running model is
+# stopped first.
+- name: Prepare the GPU for the Gemma 4 model
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Find the models deployed in the cluster
+      kubernetes.core.k8s_info:
+        api_version: "{{ item.api_version }}"
+        kind: "{{ item.kind }}"
+      loop:
+        - { api_version: serving.kserve.io/v1beta1, kind: InferenceService }
+        - { api_version: serving.kserve.io/v1alpha1, kind: LLMInferenceService }
+      loop_control:
+        label: "{{ item.kind }}"
+      register: deployed_models
+
+    - name: Start with an empty list of running models
+      ansible.builtin.set_fact:
+        running_models: []
+
+    - name: Collect the running models other than Gemma 4
+      ansible.builtin.set_fact:
+        running_models: "{{ running_models + [item] }}"
+      loop: "{{ deployed_models.results | map(attribute='resources') | flatten }}"
+      loop_control:
+        label: "{{ item.kind }} {{ item.metadata.namespace }}/{{ item.metadata.name }}"
+      when:
+        - not (item.metadata.name == model_name and item.metadata.namespace == model_namespace)
+        - (item.metadata.annotations | default({}))['serving.kserve.io/stop'] | default('false') != 'true'
+
+    - name: Show the models that will be stopped
+      ansible.builtin.debug:
+        msg: "{{ running_models | map(attribute='metadata.namespace') | zip(running_models | map(attribute='metadata.name')) | map('join', '/') | list }}"
+      when: running_models | length > 0
+
+    # Same as the Stop action in the OpenShift AI dashboard.
+    - name: Stop the running models
+      kubernetes.core.k8s:
+        state: patched
+        merge_type: merge
+        definition:
+          apiVersion: "{{ item.apiVersion }}"
+          kind: "{{ item.kind }}"
+          metadata:
+            name: "{{ item.metadata.name }}"
+            namespace: "{{ item.metadata.namespace }}"
+            annotations:
+              serving.kserve.io/stop: "true"
+      loop: "{{ running_models }}"
+      loop_control:
+        label: "{{ item.kind }} {{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+    - name: Wait for the stopped models' pods to be removed
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ item.metadata.namespace }}"
+        label_selectors:
+          - >-
+            {{ 'serving.kserve.io/inferenceservice=' if item.kind == 'InferenceService'
+               else 'app.kubernetes.io/name=' }}{{ item.metadata.name }}
+      register: stopped_pods
+      until: stopped_pods.resources | length == 0
+      retries: "{{ (model_stop_timeout | int / 10) | int }}"
+      delay: 10
+      loop: "{{ running_models }}"
+      loop_control:
+        label: "{{ item.kind }} {{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+    - name: Create the Data Science Project namespace
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('ansible.builtin.template', templates_dir ~ '/app-namespace.yaml.j2') | from_yaml }}"
+
+    # The model manifests in Git leave this annotation unset so that Argo CD does not undo a
+    # Stop from the dashboard. Start Gemma 4 again here if it was stopped.
+    - name: Read the Gemma 4 InferenceService
+      kubernetes.core.k8s_info:
+        api_version: serving.kserve.io/v1beta1
+        kind: InferenceService
+        name: "{{ model_name }}"
+        namespace: "{{ model_namespace }}"
+      register: gemma_isvc
+
+    - name: Start Gemma 4 if it was stopped
+      kubernetes.core.k8s:
+        state: patched
+        merge_type: merge
+        definition:
+          apiVersion: serving.kserve.io/v1beta1
+          kind: InferenceService
+          metadata:
+            name: "{{ model_name }}"
+            namespace: "{{ model_namespace }}"
+            annotations:
+              serving.kserve.io/stop: "false"
+      when:
+        - gemma_isvc.resources | length > 0
+        - (gemma_isvc.resources[0].metadata.annotations | default({}))['serving.kserve.io/stop'] | default('false') == 'true'

@@ -1,0 +1,41 @@
+# gemma-4-12B-it-FP8-Dynamic from the OpenShift AI Model catalog.
+# serving.kserve.io/stop is intentionally not set here: Argo CD would otherwise undo a
+# Stop from the dashboard. Ansible step 1 starts the model again when needed.
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: redhataigemma-4-12b-it-fp8-dyn
+  namespace: smart-travel-buddy
+  labels:
+    opendatahub.io/dashboard: "true"
+  annotations:
+    openshift.io/display-name: gemma-4-12B-it-FP8-Dynamic
+    # OpenShift AI rewrites RawDeployment to Standard, so use Standard to avoid drift.
+    serving.kserve.io/deploymentMode: Standard
+    security.opendatahub.io/enable-auth: "true"
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    # Single GPU: a rolling update would wait forever for a second GPU.
+    deploymentStrategy:
+      type: Recreate
+    timeout: 600
+    model:
+      modelFormat:
+        name: vLLM
+      runtime: redhataigemma-4-12b-it-fp8-dyn
+      storageUri: oci://registry.redhat.io/rhai/modelcar-redhatai-gemma-4-12b-it-fp8-dynamic:3.0
+      resources:
+        requests:
+          cpu: "2"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "8"
+          memory: 32Gi
+          nvidia.com/gpu: "1"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

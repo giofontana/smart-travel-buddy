@@ -229,7 +229,15 @@ oc apply -k gitops/overlays/dev/mixed # Postgresql as VM
 
 # or you may use ArgoCD:
 oc apply -f gitops/argocd/application.yaml
+
+# The Gemma 4 model (OpenShift AI) is deployed by its own Argo CD application, gemma-4-model,
+# from gitops/model/. Apply it after application-container.yaml, which defines the AppProject:
+oc apply -f gitops/argocd/application-container.yaml
+oc apply -f gitops/argocd/application-model.yaml
 ```
+
+To automate the whole setup on a new cluster (model, GitOps, MLflow, app and its configuration),
+see [ansible/README.md](ansible/README.md).
 
 The dev overlay configures:
 - Container image registry (`quay.io/gfontana/`)

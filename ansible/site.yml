@@ -1,0 +1,39 @@
+---
+# Runs the whole setup in order. Asks for the OpenWeatherMap key up front unless it is
+# passed with -e openweathermap_api_key=XXXX.
+- name: Collect inputs
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: openweathermap_api_key
+      prompt: "OpenWeatherMap API key (https://openweathermap.org/)"
+      private: true
+  tasks:
+    - name: Keep the OpenWeatherMap API key for the following playbooks
+      ansible.builtin.set_fact:
+        openweathermap_api_key: "{{ openweathermap_api_key }}"
+      no_log: true
+
+- name: Step 1 - Prepare the GPU for the Gemma 4 model
+  ansible.builtin.import_playbook: playbooks/01-prepare-gpu.yml
+
+- name: Step 2 - Deploy the OpenShift GitOps operator
+  ansible.builtin.import_playbook: playbooks/02-gitops-operator.yml
+
+- name: Step 3 - Create the cluster-admins group
+  ansible.builtin.import_playbook: playbooks/03-cluster-admins.yml
+
+- name: Step 4 - Deploy MLflow
+  ansible.builtin.import_playbook: playbooks/04-mlflow.yml
+
+- name: Step 5 - Deploy the Argo CD applications (app + Gemma 4 model)
+  ansible.builtin.import_playbook: playbooks/05-argocd-app.yml
+
+- name: Steps 6-8 - Create the api-keys Secret and backend-config ConfigMap
+  ansible.builtin.import_playbook: playbooks/06-app-config.yml
+
+- name: Step 9 - Restart the backend
+  ansible.builtin.import_playbook: playbooks/07-restart-backend.yml
+
+- name: Show the Smart Travel Buddy URL
+  ansible.builtin.import_playbook: playbooks/08-show-url.yml
