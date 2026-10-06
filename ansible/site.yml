@@ -23,10 +23,10 @@
 - name: Step 3 - Create the cluster-admins group
   ansible.builtin.import_playbook: playbooks/03-cluster-admins.yml
 
-- name: Step 4 - Deploy MLflow
-  ansible.builtin.import_playbook: playbooks/04-mlflow.yml
+- name: Step 4 - Deploy MLflow and TrustyAI
+  ansible.builtin.import_playbook: playbooks/04-ai-components.yml
 
-- name: Step 5 - Deploy the Argo CD applications (app + Gemma 4 model)
+- name: Step 5 - Deploy the Argo CD applications (app, Gemma 4 model, guardrails)
   ansible.builtin.import_playbook: playbooks/05-argocd-app.yml
 
 - name: Steps 6-8 - Create the api-keys Secret and backend-config ConfigMap

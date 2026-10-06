@@ -94,6 +94,12 @@ spec:
                   name: backend-config
                   key: mlflow-workspace
                   optional: true
+            - name: GUARDRAILS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: guardrails-url
+                  optional: true
             - name: SSL_CERT_FILE
               value: /ca-bundle/ca-bundle.pem
             - name: REQUESTS_CA_BUNDLE

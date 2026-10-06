@@ -1,0 +1,22 @@
+# NeMo Guardrails (OpenShift AI / TrustyAI) for Smart Travel Buddy. Uses the "workloads"
+# AppProject defined in application-container.yaml, so apply that file first.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guardrails
+  namespace: openshift-gitops
+spec:
+  project: workloads
+  source:
+    repoURL: https://github.com/giofontana/smart-travel-buddy.git
+    targetRevision: HEAD
+    path: gitops/guardrails
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: smart-travel-buddy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

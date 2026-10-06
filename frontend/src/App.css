@@ -109,6 +109,8 @@ body {
 }
 .comp-source .flow-comp-label { color: #80cbc4; }
 
+.flow-comp-dimmed { opacity: 0.3; }
+
 .flow-comp-icon { font-size: 22px; }
 .flow-comp-label { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
 

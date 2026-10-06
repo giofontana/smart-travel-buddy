@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 
+from smart_travel_buddy import guardrails
 from smart_travel_buddy.config import settings
 from smart_travel_buddy.database import async_session_factory
 from smart_travel_buddy.graph.state import TravelState
@@ -48,6 +49,8 @@ class Orchestrator:
             "itinerary": None,
         }
         self.mcp_client = None
+        # Set per message from the UI switch; only True when NeMo Guardrails is configured.
+        self.guardrails_enabled = False
 
     async def _broadcast_wrapper(self, event_type_or_dict, data=None):
         """
@@ -88,14 +91,24 @@ class Orchestrator:
                 categorized["wikipedia"].append(tool)
         return categorized
 
-    async def process_message(self, user_message: str):
-        self.state["messages"] = list(self.state["messages"]) + [HumanMessage(content=user_message)]
+    async def process_message(self, user_message: str, guardrails_enabled: bool = False):
+        self.guardrails_enabled = guardrails_enabled and guardrails.is_guardrails_available()
         trace = TraceEmitter(self.broadcast)
 
         start_time = time.time()
 
         with mlflow_run(self.session_id, self.state, request=user_message) as span:
             await trace.start("user", "backend", f"Message received: {user_message[:50]}")
+
+            if span:
+                span.set_attribute("guardrails.enabled", self.guardrails_enabled)
+
+            # Blocked messages never reach the LLM and are not added to the conversation.
+            if self.guardrails_enabled and not await self._check_input(user_message, trace, span):
+                await trace.end("backend", "user", "Response sent")
+                return
+
+            self.state["messages"] = list(self.state["messages"]) + [HumanMessage(content=user_message)]
 
             if self.state["phase"] == "interview":
                 await self._run_interview(trace)
@@ -152,6 +165,30 @@ class Orchestrator:
                 "message_count": float(len(self.state["messages"])),
                 "research_sources": float(len(self.state.get("research_results", {}))),
             })
+
+    async def _check_input(self, user_message: str, trace, span) -> bool:
+        await trace.start("backend", "guardrails", "Checking input")
+        result = await guardrails.check([{"role": "user", "content": user_message}])
+        await trace.end(
+            "guardrails", "backend", "Input blocked" if result.blocked else "Input allowed",
+            rails=result.rails,
+        )
+
+        if span:
+            span.set_attribute("guardrails.input_blocked", result.blocked)
+            span.set_attribute("guardrails.rails", result.rails)
+
+        if not result.blocked:
+            return True
+
+        await self.broadcast("agent_message", {"content": guardrails.INPUT_REFUSAL})
+        if span:
+            span.set_outputs({
+                "choices": [{
+                    "message": {"role": "assistant", "content": guardrails.INPUT_REFUSAL}
+                }]
+            })
+        return False
 
     async def _run_interview(self, trace):
         config = {
@@ -219,6 +256,7 @@ class Orchestrator:
                 "llm": self.llm,
                 "broadcast": self._broadcast_wrapper,
                 "trace": trace,
+                "guardrails": self.guardrails_enabled,
             }
         }
 
@@ -231,6 +269,7 @@ class Orchestrator:
                 "llm": self.llm,
                 "broadcast": self._broadcast_wrapper,
                 "trace": trace,
+                "guardrails": self.guardrails_enabled,
             }
         }
 

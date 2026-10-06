@@ -1,0 +1,15 @@
+# The backend calls NeMo Guardrails with its pod service account token; enable-auth requires
+# view access in the namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-guardrails-view
+  namespace: smart-travel-buddy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: smart-travel-buddy

@@ -19,6 +19,11 @@ export default function App() {
   const [flowOpen, setFlowOpen] = useState(() => {
     try { return localStorage.getItem("flow-overlay") === "open"; } catch { return false; }
   });
+  const [guardrailsEnabled, setGuardrailsEnabled] = useState(() => {
+    try { return localStorage.getItem("guardrails") === "on"; } catch { return false; }
+  });
+  const [guardrailsAvailable, setGuardrailsAvailable] = useState(false);
+  const guardrailsOn = guardrailsEnabled && guardrailsAvailable;
 
   const { connected, lastMessage, send } = useWebSocket(WS_URL);
   const traceState = useTraceEvents(lastMessage);
@@ -27,6 +32,9 @@ export default function App() {
     if (!lastMessage) return;
 
     switch (lastMessage.type) {
+      case "session_started":
+        setGuardrailsAvailable(Boolean(lastMessage.guardrails_available));
+        break;
       case "agent_message":
         setMessages((prev) => [...prev, { role: "assistant", content: lastMessage.content }]);
         setIsProcessing(false);
@@ -62,10 +70,18 @@ export default function App() {
       traceState.reset();
       setMessages((prev) => [...prev, { role: "user", content }]);
       setIsProcessing(true);
-      send({ action: "message", content });
+      send({ action: "message", content, guardrails: guardrailsOn });
     },
-    [send, traceState]
+    [send, traceState, guardrailsOn]
   );
+
+  const handleGuardrailsToggle = useCallback(() => {
+    setGuardrailsEnabled((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("guardrails", next ? "on" : "off"); } catch {}
+      return next;
+    });
+  }, []);
 
   const handleFlowToggle = useCallback(() => {
     setFlowOpen((prev) => {
@@ -85,6 +101,9 @@ export default function App() {
           onSend={handleSend}
           isProcessing={isProcessing}
           connected={connected}
+          guardrailsEnabled={guardrailsEnabled}
+          guardrailsAvailable={guardrailsAvailable}
+          onToggleGuardrails={handleGuardrailsToggle}
         />
       </div>
 
@@ -116,6 +135,7 @@ export default function App() {
         completedConnections={traceState.completedConnections}
         startTime={traceState.startTime}
         endTime={traceState.endTime}
+        guardrailsEnabled={guardrailsOn}
       />
     </div>
   );

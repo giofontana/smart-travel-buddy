@@ -1,6 +1,7 @@
 ---
 # Steps 6-8: collect the OpenWeatherMap key, the Gemma 4 token and internal endpoint, then
-# create the api-keys Secret and backend-config ConfigMap used by the backend.
+# create the api-keys Secret and backend-config ConfigMap used by the backend. The ConfigMap
+# also gets the NeMo Guardrails URL, which enables the Guardrails switch in the UI.
 - name: Configure Smart Travel Buddy
   hosts: localhost
   gather_facts: false
@@ -82,6 +83,36 @@
             openweathermap: "{{ openweathermap_api_key }}"
       no_log: true
 
+    # NeMo Guardrails starts once the api-keys Secret exists (it holds the Gemma 4 token used
+    # by the self-check rails).
+    - name: Wait for NeMo Guardrails to be available
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: "{{ guardrails_name }}"
+        namespace: "{{ app_namespace }}"
+      register: guardrails_deployment
+      until: >-
+        (guardrails_deployment.resources | length > 0) and
+        (guardrails_deployment.resources[0].status.availableReplicas | default(0) > 0)
+      retries: "{{ (guardrails_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Read the NeMo Guardrails Service
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Service
+        name: "{{ guardrails_name }}"
+        namespace: "{{ app_namespace }}"
+      register: guardrails_service
+
+    - name: Build the NeMo Guardrails internal URL
+      vars:
+        guardrails_port: "{{ guardrails_service.resources[0].spec.ports[0].port }}"
+      ansible.builtin.set_fact:
+        guardrails_url: >-
+          https://{{ guardrails_name }}.{{ app_namespace }}.svc.cluster.local{{ '' if guardrails_port | int == 443 else ':' ~ guardrails_port }}
+
     - name: Create the backend-config ConfigMap
       kubernetes.core.k8s:
         state: present
@@ -99,6 +130,7 @@
             mlflow-experiment-name: "{{ mlflow_experiment_name }}"
             mlflow-tracking-auth: kubernetes-namespaced
             mlflow-workspace: "{{ app_namespace }}"
+            guardrails-url: "{{ guardrails_url }}"
 
     - name: Show the backend settings
       ansible.builtin.debug:
@@ -106,3 +138,4 @@
           - "LLM model:     {{ model_name }}"
           - "LLM base URL:  {{ llm_base_url }}"
           - "MLflow URI:    {{ mlflow_tracking_uri }}"
+          - "Guardrails:    {{ guardrails_url }}"

@@ -1,7 +1,8 @@
 ---
-# Step 5: create the Argo CD applications: smart-travel-buddy (AppProject + app) and
-# gemma-4-model (the Gemma 4 model). The app is applied first because it defines the
-# AppProject both applications use.
+# Step 5: create the Argo CD applications: smart-travel-buddy (AppProject + app),
+# gemma-4-model (the Gemma 4 model) and guardrails (NeMo Guardrails). The app is applied
+# first because it defines the AppProject the other applications use. NeMo Guardrails needs
+# the api-keys Secret, so step 6 waits for it.
 - name: Deploy the Argo CD applications
   hosts: localhost
   gather_facts: false
@@ -13,6 +14,7 @@
       loop:
         - "{{ argocd_app_url }}"
         - "{{ argocd_model_app_url }}"
+        - "{{ argocd_guardrails_app_url }}"
       register: argocd_manifests
 
     - name: Apply the Argo CD applications

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-function ComponentBox({ id, icon, label, activeConnections, completedConnections }) {
+function ComponentBox({ id, icon, label, activeConnections, completedConnections, dimmed = false }) {
   const isSource = activeConnections.some((c) => c.source === id);
   const isTarget = activeConnections.some((c) => c.target === id);
   const isDone = completedConnections.some(
@@ -13,7 +13,7 @@ function ComponentBox({ id, icon, label, activeConnections, completedConnections
   else if (isDone) stateClass = "comp-done";
 
   return (
-    <div className={`flow-comp ${stateClass}`}>
+    <div className={`flow-comp ${stateClass} ${dimmed ? "flow-comp-dimmed" : ""}`}>
       <span className="flow-comp-icon">{icon}</span>
       <span className="flow-comp-label">{label}</span>
       {isDone && !isTarget && !isSource && (
@@ -147,6 +147,7 @@ export default function FlowOverlay({
   completedConnections,
   startTime,
   endTime,
+  guardrailsEnabled,
 }) {
   if (!isOpen) return null;
 
@@ -159,6 +160,9 @@ export default function FlowOverlay({
           activeConnections={activeConnections} completedConnections={completedConnections} />
         <Arrow from="user" to="backend" activeConnections={activeConnections} />
         <ComponentBox id="backend" icon={"⚙️"} label="Backend"
+          activeConnections={activeConnections} completedConnections={completedConnections} />
+        <Arrow from="backend" to="guardrails" activeConnections={activeConnections} />
+        <ComponentBox id="guardrails" icon={"\u{1F6E1}️"} label="Guardrails" dimmed={!guardrailsEnabled}
           activeConnections={activeConnections} completedConnections={completedConnections} />
         <Arrow from="backend" to="llm" activeConnections={activeConnections} />
         <ComponentBox id="llm" icon={"\u{1F9E0}"} label="LLM"

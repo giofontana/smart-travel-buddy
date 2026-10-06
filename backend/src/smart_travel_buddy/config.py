@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     mlflow_tracking_token: str = ""
     mlflow_workspace: str = ""
 
+    # NeMo Guardrails settings (optional - unavailable when guardrails_url is empty)
+    guardrails_url: str = ""
+    guardrails_token_file: str = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    guardrails_timeout: float = 60.0
+    # When NeMo Guardrails cannot be reached, let the message through (True) or block it (False)
+    guardrails_fail_open: bool = True
+
     # LLM token cost per 1M tokens (USD)
     llm_input_token_cost: float = 1.0
     llm_output_token_cost: float = 3.0

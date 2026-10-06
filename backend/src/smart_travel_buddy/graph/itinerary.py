@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
+from smart_travel_buddy import guardrails
 from smart_travel_buddy.graph.state import TravelState
 from smart_travel_buddy.prompts.itinerary import ITINERARY_SYSTEM_PROMPT
 
@@ -49,6 +50,19 @@ def _build_research_context(state: TravelState) -> str:
     return "\n\n".join(parts)
 
 
+async def _output_blocked(content: str, trace) -> bool:
+    """Validate the generated itinerary with the NeMo Guardrails output rails."""
+    if trace:
+        await trace.start("backend", "guardrails", "Checking itinerary")
+    result = await guardrails.check([{"role": "assistant", "content": content}])
+    if trace:
+        await trace.end(
+            "guardrails", "backend", "Itinerary blocked" if result.blocked else "Itinerary allowed",
+            rails=result.rails,
+        )
+    return result.blocked
+
+
 async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelState:
     llm = config["configurable"]["llm"]
     broadcast = config["configurable"]["broadcast"]
@@ -80,6 +94,11 @@ async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelSt
     if trace:
         token_usage = response.response_metadata.get("token_usage", {})
         await trace.end("llm", "backend", "Itinerary generated", tokens=token_usage)
+
+    if config["configurable"].get("guardrails") and await _output_blocked(response.content, trace):
+        await broadcast("progress", {"step": "itinerary", "status": "complete"})
+        await broadcast("agent_message", {"content": guardrails.OUTPUT_REFUSAL})
+        return {**state, "phase": "refinement"}
 
     itinerary = parse_itinerary_json(response.content)
 

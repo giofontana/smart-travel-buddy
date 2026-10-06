@@ -8,6 +8,7 @@ templates_dir: "{{ inventory_dir }}/../templates"
 app_namespace: smart-travel-buddy
 argocd_app_url: https://raw.githubusercontent.com/giofontana/smart-travel-buddy/refs/heads/master/gitops/argocd/application-container.yaml
 argocd_model_app_url: https://raw.githubusercontent.com/giofontana/smart-travel-buddy/refs/heads/master/gitops/argocd/application-model.yaml
+argocd_guardrails_app_url: https://raw.githubusercontent.com/giofontana/smart-travel-buddy/refs/heads/master/gitops/argocd/application-guardrails.yaml
 argocd_app_timeout: 900  # seconds to wait for Argo CD to create the backend Deployment and the model
 backend_restart_timeout: 600
 
@@ -22,6 +23,11 @@ model_namespace: "{{ app_namespace }}"
 model_name: redhataigemma-4-12b-it-fp8-dyn
 model_ready_timeout: 1800
 model_stop_timeout: 600  # seconds to wait for other running models to release the GPU
+
+# ── NeMo Guardrails (deployed by the guardrails Argo CD application) ──
+# Must match the NemoGuardrails name in gitops/guardrails/.
+guardrails_name: travel-guardrails
+guardrails_timeout: 600  # seconds to wait for the NeMo Guardrails service to be available
 
 # ── OpenShift GitOps ────────────────────────────────────────────
 gitops_channel: latest

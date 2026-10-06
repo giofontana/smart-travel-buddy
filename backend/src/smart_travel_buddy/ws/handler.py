@@ -32,8 +32,12 @@ class WebSocketHandler:
 
     async def _handle_start(self, message: dict):
         from smart_travel_buddy.graph.orchestrator import create_orchestrator
+        from smart_travel_buddy.guardrails import is_guardrails_available
         self.orchestrator = await create_orchestrator(self.broadcast)
-        await self.broadcast("session_started", {"session_id": self.orchestrator.session_id})
+        await self.broadcast("session_started", {
+            "session_id": self.orchestrator.session_id,
+            "guardrails_available": is_guardrails_available(),
+        })
 
     async def _handle_message(self, message: dict):
         if not self.orchestrator:
@@ -43,11 +47,12 @@ class WebSocketHandler:
         if self._task and not self._task.done():
             await self.broadcast("error", {"message": "Agent is busy processing. Please wait."})
             return
-        self._task = asyncio.create_task(self._run_agent(content))
+        guardrails_enabled = bool(message.get("guardrails", False))
+        self._task = asyncio.create_task(self._run_agent(content, guardrails_enabled))
 
-    async def _run_agent(self, user_message: str):
+    async def _run_agent(self, user_message: str, guardrails_enabled: bool = False):
         try:
-            await self.orchestrator.process_message(user_message)
+            await self.orchestrator.process_message(user_message, guardrails_enabled)
         except Exception as e:
             traceback.print_exc()
             await self.broadcast("error", {"message": str(e)})

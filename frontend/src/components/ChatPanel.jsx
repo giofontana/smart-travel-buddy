@@ -1,8 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Compass } from "lucide-react";
 import MessageBubble from "./MessageBubble";
+import GuardrailsToggle from "./GuardrailsToggle";
 
-export default function ChatPanel({ messages, onSend, isProcessing, connected }) {
+export default function ChatPanel({
+  messages,
+  onSend,
+  isProcessing,
+  connected,
+  guardrailsEnabled,
+  guardrailsAvailable,
+  onToggleGuardrails,
+}) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
 
@@ -25,9 +34,16 @@ export default function ChatPanel({ messages, onSend, isProcessing, connected })
           <Compass className="w-5 h-5" />
           Smart Travel Buddy
         </h2>
-        <div className="flex items-center gap-1.5 text-xs">
-          <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-400"}`} />
-          <span style={{ color: "var(--color-text-muted)" }}>{connected ? "Connected" : "Disconnected"}</span>
+        <div className="flex items-center gap-3">
+          <GuardrailsToggle
+            enabled={guardrailsEnabled}
+            available={guardrailsAvailable}
+            onToggle={onToggleGuardrails}
+          />
+          <div className="flex items-center gap-1.5 text-xs">
+            <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-400"}`} />
+            <span style={{ color: "var(--color-text-muted)" }}>{connected ? "Connected" : "Disconnected"}</span>
+          </div>
         </div>
       </div>
 

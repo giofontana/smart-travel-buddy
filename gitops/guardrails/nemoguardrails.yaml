@@ -1,0 +1,23 @@
+apiVersion: trustyai.opendatahub.io/v1alpha1
+kind: NemoGuardrails
+metadata:
+  name: travel-guardrails
+  namespace: smart-travel-buddy
+  annotations:
+    # Only identities with view access in the namespace can call the service.
+    security.opendatahub.io/enable-auth: "true"
+spec:
+  nemoConfigs:
+    - name: travel-guardrails-config
+      configMaps:
+        - travel-guardrails-config
+      default: true
+  env:
+    # Gemma 4 token used by the self-check rails. Created by Ansible step 6.
+    - name: LLM_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: api-keys
+          key: llm-api-key
+  # No caBundleConfig needed: the operator adds the OpenShift serving CA, which signs the
+  # Gemma 4 predictor certificate.
