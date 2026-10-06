@@ -98,7 +98,7 @@ async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelSt
     if config["configurable"].get("guardrails") and await _output_blocked(response.content, trace):
         await broadcast("progress", {"step": "itinerary", "status": "complete"})
         await broadcast("agent_message", {"content": guardrails.OUTPUT_REFUSAL})
-        return {**state, "phase": "refinement"}
+        return {**state, "phase": "chat"}
 
     itinerary = parse_itinerary_json(response.content)
 
@@ -112,7 +112,7 @@ async def itinerary_node(state: TravelState, config: RunnableConfig) -> TravelSt
         **state,
         "messages": new_messages,
         "itinerary": itinerary,
-        "phase": "refinement",
+        "phase": "chat",
     }
 
 

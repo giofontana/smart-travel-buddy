@@ -26,7 +26,7 @@ Smart Travel Buddy is a demo app for Red Hat OpenShift AI: a conversational trav
    - **interview**: LangGraph subgraph (`graph/interview.py`, prompt in `prompts/interview.py`). The LLM signals completion by emitting a `{"ready"...}` JSON block, which the orchestrator strips before displaying the message and which flips the phase to `research`.
    - **research**: `graph/research.py`. Weather, currency and Wikipedia MCP calls run in parallel via `asyncio.gather`, then `call_rag` runs against pgvector. MCP tools are grouped into categories by substring matching on tool names in `_get_mcp_tools`, so renaming an MCP tool can silently drop it.
    - **itinerary**: `graph/itinerary.py` (prompt in `prompts/itinerary.py`) produces structured JSON rendered as day cards.
-   - **refinement**: follow-up messages re-run `itinerary_node` against the existing state.
+   - **chat**: after the itinerary, `graph/chat.py` (prompt in `prompts/chat.py`) answers follow-up messages as a general chat assistant, with the trip and itinerary in the system prompt. It never changes the itinerary. The prompt is deliberately permissive (it accepts prompt injection) to demonstrate NeMo Guardrails.
 4. Broadcasts: research nodes call `broadcast({...})`, itinerary nodes call `broadcast("progress", {...})`. `_broadcast_wrapper` accepts both forms; keep that in mind when adding nodes.
 
 Session state lives only in process memory (`MemorySaver` + `self.state`). Refreshing the browser starts a new session. The DB models in `models.py` exist, but conversations are not persisted by the orchestrator.

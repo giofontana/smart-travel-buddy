@@ -11,6 +11,7 @@ export default function ChatPanel({
   guardrailsEnabled,
   guardrailsAvailable,
   onToggleGuardrails,
+  placeholder = "Tell me about your trip...",
 }) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
@@ -79,7 +80,7 @@ export default function ChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Tell me about your trip..."
+            placeholder={placeholder}
             disabled={!connected || isProcessing}
             className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)] disabled:opacity-50"
           />

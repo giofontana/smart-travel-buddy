@@ -19,7 +19,8 @@ from smart_travel_buddy.graph.research import (
     call_wikipedia,
     call_rag,
 )
-from smart_travel_buddy.graph.itinerary import build_itinerary_graph, itinerary_node
+from smart_travel_buddy.graph.chat import chat_node
+from smart_travel_buddy.graph.itinerary import build_itinerary_graph
 
 
 BroadcastFn = Callable[[str, dict], Coroutine[Any, Any, None]]
@@ -115,8 +116,8 @@ class Orchestrator:
             elif self.state["phase"] == "research":
                 await self._run_research(trace)
                 await self._run_itinerary(trace)
-            elif self.state["phase"] == "refinement":
-                await self._run_refinement(user_message, trace)
+            elif self.state["phase"] == "chat":
+                await self._run_chat(trace)
 
             await trace.end("backend", "user", "Response sent")
 
@@ -263,7 +264,7 @@ class Orchestrator:
         result = await self.itinerary_graph.ainvoke(self.state, config)
         self.state = {**self.state, **result}
 
-    async def _run_refinement(self, user_message: str, trace):
+    async def _run_chat(self, trace):
         config = {
             "configurable": {
                 "llm": self.llm,
@@ -273,8 +274,9 @@ class Orchestrator:
             }
         }
 
-        result = await itinerary_node(self.state, config)
+        result = await chat_node(self.state, config)
         self.state = {**self.state, **result}
+        await self.broadcast("agent_message", {"content": self.state["messages"][-1].content})
 
     async def close(self):
         pass

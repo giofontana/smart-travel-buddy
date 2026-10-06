@@ -23,6 +23,7 @@ OUTPUT_REFUSAL = (
     "I couldn't produce an itinerary that passed the safety checks. "
     "Please try rephrasing your request."
 )
+CHAT_OUTPUT_REFUSAL = "I can't share that response because it didn't pass the safety checks."
 
 
 @dataclass

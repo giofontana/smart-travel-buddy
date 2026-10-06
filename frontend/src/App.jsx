@@ -104,6 +104,7 @@ export default function App() {
           guardrailsEnabled={guardrailsEnabled}
           guardrailsAvailable={guardrailsAvailable}
           onToggleGuardrails={handleGuardrailsToggle}
+          placeholder={itinerary ? "Ask me anything about your trip..." : "Tell me about your trip..."}
         />
       </div>
 

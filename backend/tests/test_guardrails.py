@@ -213,7 +213,7 @@ async def test_blocked_itinerary_is_not_shown(monkeypatch):
     broadcast.assert_any_await("agent_message", {"content": guardrails.OUTPUT_REFUSAL})
     assert all(call.args[0] != "itinerary" for call in broadcast.await_args_list)
     assert result["itinerary"] is None
-    assert result["phase"] == "refinement"
+    assert result["phase"] == "chat"
 
 
 async def test_itinerary_without_guardrails_skips_check(monkeypatch):
@@ -228,3 +228,4 @@ async def test_itinerary_without_guardrails_skips_check(monkeypatch):
         "itinerary", {"data": {"destination": "Paris, France", "days": []}}
     )
     assert result["itinerary"] == {"destination": "Paris, France", "days": []}
+    assert result["phase"] == "chat"
