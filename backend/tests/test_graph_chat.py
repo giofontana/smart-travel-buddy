@@ -100,3 +100,14 @@ async def test_orchestrator_chat_phase_replies_in_chat(monkeypatch):
     assert orch.state["itinerary"] == ITINERARY
     assert orch.state["messages"][-2].content == "What should I wear on day 1?"
 
+
+
+async def test_orchestrator_itinerary_broadcasts_phase_changes():
+    orch = Orchestrator(AsyncMock())
+    orch.itinerary_graph = AsyncMock()
+    orch.itinerary_graph.ainvoke.return_value = {"itinerary": ITINERARY, "phase": "chat"}
+
+    await orch._run_itinerary(trace=None)
+
+    phases = [c.args[1]["phase"] for c in orch.broadcast.await_args_list if c.args[0] == "phase_change"]
+    assert phases == ["itinerary", "chat"]

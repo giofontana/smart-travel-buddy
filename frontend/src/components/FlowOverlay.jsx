@@ -115,6 +115,30 @@ function TraceLog({ events }) {
   );
 }
 
+const PHASES = [
+  ["interview", "Interview"],
+  ["research", "Research"],
+  ["itinerary", "Itinerary"],
+  ["chat", "Chat"],
+];
+
+function PhaseIndicator({ phase }) {
+  const current = PHASES.findIndex(([id]) => id === phase);
+
+  return (
+    <div className="flow-phases">
+      {PHASES.map(([id, label], i) => (
+        <div
+          key={id}
+          className={`flow-phase ${i === current ? "flow-phase-active" : i < current ? "flow-phase-done" : ""}`}
+        >
+          {label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ElapsedTimer({ startTime, endTime }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -148,12 +172,15 @@ export default function FlowOverlay({
   startTime,
   endTime,
   guardrailsEnabled,
+  phase,
 }) {
   if (!isOpen) return null;
 
   return (
     <div className="flow-overlay">
       <ElapsedTimer startTime={startTime} endTime={endTime} />
+
+      <PhaseIndicator phase={phase} />
 
       <div className="flow-diagram">
         <ComponentBox id="user" icon={"\u{1F464}"} label="User"

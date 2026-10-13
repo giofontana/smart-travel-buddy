@@ -34,6 +34,7 @@ export default function App() {
     switch (lastMessage.type) {
       case "session_started":
         setGuardrailsAvailable(Boolean(lastMessage.guardrails_available));
+        setPhase("interview");
         break;
       case "agent_message":
         setMessages((prev) => [...prev, { role: "assistant", content: lastMessage.content }]);
@@ -111,7 +112,7 @@ export default function App() {
       {/* Right panel: Itinerary / Progress */}
       <div className="flex-1 bg-[var(--color-bg)] overflow-y-auto p-6"
         style={{ paddingBottom: flowOpen ? "190px" : undefined }}>
-        {phase === "research" && progress.length > 0 && !itinerary && (
+        {(phase === "research" || phase === "itinerary") && progress.length > 0 && !itinerary && (
           <ProgressCards progress={progress} />
         )}
 
@@ -137,6 +138,7 @@ export default function App() {
         startTime={traceState.startTime}
         endTime={traceState.endTime}
         guardrailsEnabled={guardrailsOn}
+        phase={phase}
       />
     </div>
   );
