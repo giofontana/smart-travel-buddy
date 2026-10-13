@@ -1,0 +1,158 @@
+# Builds the five Smart Travel Buddy images from Git and pushes them to the registry
+# (by default the OpenShift internal registry of the smart-travel-buddy namespace).
+# Uses the git-clone, buildah and openshift-client tasks shipped with OpenShift Pipelines.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: smart-travel-buddy-build
+spec:
+  params:
+    - name: GIT_URL
+      type: string
+      default: https://github.com/giofontana/smart-travel-buddy.git
+    - name: GIT_REVISION
+      type: string
+      default: master
+    - name: IMAGE_REGISTRY
+      type: string
+      description: Registry and repository prefix the images are pushed to
+      default: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy
+    - name: IMAGE_TAG
+      type: string
+      default: latest
+  workspaces:
+    - name: source
+  tasks:
+    - name: fetch-source
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: git-clone}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: URL
+          value: $(params.GIT_URL)
+        - name: REVISION
+          value: $(params.GIT_REVISION)
+      workspaces:
+        - name: output
+          workspace: source
+    - name: build-backend
+      runAfter: [fetch-source]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: buildah}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_REGISTRY)/smart-travel-buddy-backend:$(params.IMAGE_TAG)
+        - name: CONTEXT
+          value: ./backend
+        - name: DOCKERFILE
+          value: ./backend/Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-frontend
+      runAfter: [fetch-source]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: buildah}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_REGISTRY)/smart-travel-buddy-frontend:$(params.IMAGE_TAG)
+        - name: CONTEXT
+          value: ./frontend
+        - name: DOCKERFILE
+          value: ./frontend/Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-mcp-weather
+      runAfter: [fetch-source]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: buildah}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_REGISTRY)/smart-travel-buddy-mcp-weather:$(params.IMAGE_TAG)
+        - name: CONTEXT
+          value: ./mcp/weather
+        - name: DOCKERFILE
+          value: ./mcp/weather/Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-mcp-currency
+      runAfter: [fetch-source]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: buildah}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_REGISTRY)/smart-travel-buddy-mcp-currency:$(params.IMAGE_TAG)
+        - name: CONTEXT
+          value: ./mcp/currency
+        - name: DOCKERFILE
+          value: ./mcp/currency/Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-mcp-wikipedia
+      runAfter: [fetch-source]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: buildah}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_REGISTRY)/smart-travel-buddy-mcp-wikipedia:$(params.IMAGE_TAG)
+        - name: CONTEXT
+          value: ./mcp/wikipedia
+        - name: DOCKERFILE
+          value: ./mcp/wikipedia/Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+
+    # The deployments use :latest tags, so restarting them pulls the new images. Deployments
+    # that do not exist yet (first build, before Argo CD deploys the app) are skipped.
+    - name: restart-deployments
+      runAfter: [build-backend, build-frontend, build-mcp-weather, build-mcp-currency, build-mcp-wikipedia]
+      taskRef:
+        resolver: cluster
+        params:
+          - {name: kind, value: task}
+          - {name: name, value: openshift-client}
+          - {name: namespace, value: openshift-pipelines}
+      params:
+        - name: SCRIPT
+          value: |
+            set -e
+            ns=$(context.pipelineRun.namespace)
+            for d in backend frontend mcp-weather mcp-currency mcp-wikipedia; do
+              if oc get deployment "$d" -n "$ns" >/dev/null 2>&1; then
+                oc rollout restart deployment/"$d" -n "$ns"
+              else
+                echo "Deployment $d not found in $ns, skipping restart"
+              fi
+            done
+            for d in backend frontend mcp-weather mcp-currency mcp-wikipedia; do
+              if oc get deployment "$d" -n "$ns" >/dev/null 2>&1; then
+                oc rollout status deployment/"$d" -n "$ns" --timeout=10m
+              fi
+            done

@@ -5,7 +5,7 @@ NETWORK := smart-travel-buddy
 
 IMAGES := backend frontend mcp-weather mcp-currency mcp-wikipedia
 
-.PHONY: help build build-% push push-% run stop clean seed test lint deploy
+.PHONY: help build build-% push push-% run stop clean seed test lint deploy pipeline-install pipeline-run
 
 help:
 	@echo "Smart Travel Buddy"
@@ -27,6 +27,10 @@ help:
 	@echo ""
 	@echo "Deploy:"
 	@echo "  make deploy       - Apply Kustomize manifests to OpenShift"
+	@echo ""
+	@echo "OpenShift Pipelines:"
+	@echo "  make pipeline-install - Apply the Tekton pipeline (tekton/) to OpenShift"
+	@echo "  make pipeline-run     - Build all images on OpenShift and restart the deployments"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        - Remove all local containers, network, and images"
@@ -136,6 +140,15 @@ deploy-container:
 
 deploy-with-vm:
 	oc apply -k gitops/overlays/dev/mixed/
+
+# ── OpenShift Pipelines ──────────────────────────────────────
+
+pipeline-install:
+	oc apply -k tekton/
+
+pipeline-run:
+	oc create -f tekton/pipelinerun.yaml
+	@echo "Follow the build with: tkn pipelinerun logs -f -L -n smart-travel-buddy"
 
 # ── Cleanup ──────────────────────────────────────────────────────
 

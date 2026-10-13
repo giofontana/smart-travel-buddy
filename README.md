@@ -76,6 +76,7 @@ smart-travel-buddy/
 ├── gitops/
 │   ├── base/               # Kubernetes manifests (deployments, services, PVCs)
 │   └── overlays/dev/       # Dev overlay (secrets, configmap, routes, image registry)
+├── tekton/                 # OpenShift Pipelines build pipeline (git-clone → buildah ×5 → restart)
 └── Makefile                # Single entry point for all operations
 ```
 
@@ -146,6 +147,8 @@ make seed
 | `make test` | Run all test suites |
 | `make lint` | Run ruff linter and formatter check |
 | `make deploy` | Apply Kustomize manifests to OpenShift |
+| `make pipeline-install` | Apply the Tekton pipeline in `tekton/` to the `smart-travel-buddy` namespace |
+| `make pipeline-run` | Build all images on OpenShift, push them to the internal registry and restart the deployments |
 | `make clean` | Remove all containers, network, and images |
 
 ## Configuration
@@ -215,6 +218,21 @@ oc create configmap backend-config -n smart-travel-buddy \
   --from-literal=mlflow-workspace=smart-travel-buddy
 ```
 
+Then build the images on the cluster with OpenShift Pipelines (Tekton). The dev overlays pull
+them from the OpenShift internal registry, so this has to run at least once before deploying:
+
+```bash
+make pipeline-install   # apply the smart-travel-buddy-build Pipeline from tekton/
+make pipeline-run       # start a PipelineRun
+tkn pipelinerun logs -f -L -n smart-travel-buddy
+```
+
+The pipeline clones the Git repo (`GIT_URL` / `GIT_REVISION` params, `master` by default), so it
+builds what is pushed, not your local working tree. It builds the five images in parallel with
+`buildah`, pushes them to `image-registry.openshift-image-registry.svc:5000/smart-travel-buddy`,
+then restarts the deployments that already exist so they pull the new `:latest` images. The
+workspace PVC uses the cluster's default StorageClass.
+
 Then deploy:
 
 ```bash
@@ -244,7 +262,7 @@ To automate the whole setup on a new cluster (model, GitOps, MLflow, NeMo Guardr
 configuration), see [ansible/README.md](ansible/README.md).
 
 The dev overlay configures:
-- Container image registry (`quay.io/gfontana/`)
+- Container image registry (OpenShift internal registry, images built by the Tekton pipeline)
 - PostgreSQL and API key secrets. Note that secret is using SealedSecrets
 - Backend ConfigMap (LLM endpoint configuration)
 - Frontend Route with TLS edge termination

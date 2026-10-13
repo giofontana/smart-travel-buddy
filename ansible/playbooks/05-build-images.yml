@@ -1,0 +1,96 @@
+---
+# Step 5: build the app images with OpenShift Pipelines. Installs the operator, applies the
+# smart-travel-buddy-build Pipeline from tekton/ and runs it, so the images exist in the internal
+# registry before Argo CD deploys the app in step 6. The pipeline builds from Git (GIT_URL and
+# GIT_REVISION), not from the local working tree.
+- name: Build the app images with OpenShift Pipelines
+  hosts: localhost
+  gather_facts: false
+  vars:
+    tekton_dir: "{{ playbook_dir }}/../../tekton"
+  tasks:
+    - name: Create the OpenShift Pipelines Subscription
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('ansible.builtin.template', templates_dir ~ '/pipelines-subscription.yaml.j2') | from_yaml }}"
+
+    - name: Wait for the Subscription to resolve an operator version
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        name: openshift-pipelines-operator
+        namespace: openshift-operators
+      register: pipelines_sub
+      until: pipelines_sub.resources[0].status.installedCSV is defined
+      retries: "{{ (pipelines_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the operator install to succeed
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        name: "{{ pipelines_sub.resources[0].status.installedCSV }}"
+        namespace: openshift-operators
+      register: pipelines_csv
+      until: (pipelines_csv.resources | length > 0) and (pipelines_csv.resources[0].status.phase | default('') == 'Succeeded')
+      retries: "{{ (pipelines_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Wait for the operator to create the pipeline ServiceAccount
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ServiceAccount
+        name: pipeline
+        namespace: "{{ app_namespace }}"
+      register: pipeline_sa
+      until: pipeline_sa.resources | length > 0
+      retries: "{{ (pipelines_timeout | int / 10) | int }}"
+      delay: 10
+
+    - name: Apply the smart-travel-buddy-build Pipeline
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        namespace: "{{ app_namespace }}"
+        definition: "{{ lookup('ansible.builtin.file', tekton_dir ~ '/pipeline.yaml') | from_yaml }}"
+      register: pipeline_apply
+      # Retry while the Tekton CRDs are still being registered after the operator install.
+      until: pipeline_apply is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Start the pipeline
+      kubernetes.core.k8s:
+        state: present
+        generate_name: smart-travel-buddy-build-
+        definition: >-
+          {{ lookup('ansible.builtin.file', tekton_dir ~ '/pipelinerun.yaml') | from_yaml
+             | combine({'metadata': {'namespace': app_namespace},
+                        'spec': {'params': [{'name': 'GIT_URL', 'value': pipeline_git_url},
+                                            {'name': 'GIT_REVISION', 'value': pipeline_git_revision}]}},
+                       recursive=true) }}
+      register: pipeline_run
+
+    - name: Wait for the pipeline to finish (builds five images, can take a while)
+      kubernetes.core.k8s_info:
+        api_version: tekton.dev/v1
+        kind: PipelineRun
+        name: "{{ pipeline_run.result.metadata.name }}"
+        namespace: "{{ app_namespace }}"
+      register: run_status
+      until: >-
+        (run_status.resources[0].status.conditions | default([])
+          | selectattr('type', 'equalto', 'Succeeded') | rejectattr('status', 'equalto', 'Unknown') | list | length) > 0
+      retries: "{{ (pipeline_timeout | int / 15) | int }}"
+      delay: 15
+
+    - name: Check that the pipeline succeeded
+      vars:
+        condition: "{{ run_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Succeeded') | first }}"
+      ansible.builtin.assert:
+        that: condition.status == 'True'
+        fail_msg: >-
+          PipelineRun {{ pipeline_run.result.metadata.name }} failed ({{ condition.reason }}): {{ condition.message }}
+          Inspect it with: tkn pipelinerun logs {{ pipeline_run.result.metadata.name }} -n {{ app_namespace }}
+        success_msg: "PipelineRun {{ pipeline_run.result.metadata.name }} succeeded"

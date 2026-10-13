@@ -1,0 +1,24 @@
+# Start a build with: oc create -f tekton/pipelinerun.yaml (or make pipeline-run)
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: smart-travel-buddy-build-
+  namespace: smart-travel-buddy
+spec:
+  pipelineRef:
+    name: smart-travel-buddy-build
+  params:
+    - name: GIT_REVISION
+      value: master
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  workspaces:
+    - name: source
+      # No storageClassName: the cluster's default StorageClass is used.
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 2Gi
