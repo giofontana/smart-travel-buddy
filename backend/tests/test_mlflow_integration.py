@@ -88,6 +88,25 @@ class TestMlflowRunContext:
         finally:
             mod._MLFLOW_AVAILABLE = original
 
+    @patch("smart_travel_buddy.mlflow_utils.mlflow")
+    def test_sets_session_metadata_in_every_phase(self, mock_mlflow, enable_mlflow):
+        import smart_travel_buddy.mlflow_utils as mod
+        original = mod._MLFLOW_AVAILABLE
+        mod._MLFLOW_AVAILABLE = True
+
+        try:
+            for phase in ("interview", "chat"):
+                mock_mlflow.update_current_trace.reset_mock()
+                state = {"phase": phase, "destination": "Tokyo", "interests": []}
+                with mod.mlflow_run("test-session-id-1234", state):
+                    pass
+
+                mock_mlflow.update_current_trace.assert_called_once_with(
+                    metadata={"mlflow.trace.session": "test-session-id-1234"}
+                )
+        finally:
+            mod._MLFLOW_AVAILABLE = original
+
 
 class TestMlflowSpanContext:
     def test_noop_when_disabled(self, disable_mlflow):
