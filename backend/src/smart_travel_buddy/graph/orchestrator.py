@@ -252,6 +252,8 @@ class Orchestrator:
             self.state["research_results"]["rag_context"] = rag_result["research_results"].get("rag_context", "")
 
     async def _run_itinerary(self, trace):
+        await self.broadcast("phase_change", {"phase": "itinerary"})
+
         config = {
             "configurable": {
                 "llm": self.llm,
@@ -263,6 +265,7 @@ class Orchestrator:
 
         result = await self.itinerary_graph.ainvoke(self.state, config)
         self.state = {**self.state, **result}
+        await self.broadcast("phase_change", {"phase": self.state["phase"]})
 
     async def _run_chat(self, trace):
         config = {

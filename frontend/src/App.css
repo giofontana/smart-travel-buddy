@@ -227,6 +227,34 @@ body {
 .flow-log-active .flow-log-detail { color: #ffd54f; }
 .flow-log-active .flow-log-duration { color: #ffd54f; }
 
+.flow-phases {
+  width: 140px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding-right: 20px;
+}
+.flow-phase {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+.flow-phase-done { color: rgba(255, 255, 255, 0.6); }
+.flow-phase-active {
+  color: #81c784;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(0, 200, 100, 0.4);
+}
+.flow-phase-active::before {
+  content: "\25CF";
+  font-size: 10px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .flow-timer {
   position: absolute;
   top: 12px;
