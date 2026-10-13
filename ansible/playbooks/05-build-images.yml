@@ -1,7 +1,8 @@
 ---
 # Step 5: build the app images with OpenShift Pipelines. Installs the operator, applies the
-# smart-travel-buddy-build Pipeline from tekton/ and runs it, so the images exist in the internal
-# registry before Argo CD deploys the app in step 6. The pipeline builds from Git (GIT_URL and
+# smart-travel-buddy-build Pipeline from tekton/ in its own namespace (pipeline_namespace) and runs
+# it, so the images exist in the internal registry of app_namespace before Argo CD deploys the app
+# in step 6. The pipeline builds from Git (GIT_URL and
 # GIT_REVISION), not from the local working tree.
 - name: Build the app images with OpenShift Pipelines
   hosts: localhost
@@ -37,22 +38,43 @@
       retries: "{{ (pipelines_timeout | int / 10) | int }}"
       delay: 10
 
+    - name: Create the pipeline namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ pipeline_namespace }}"
+
     - name: Wait for the operator to create the pipeline ServiceAccount
       kubernetes.core.k8s_info:
         api_version: v1
         kind: ServiceAccount
         name: pipeline
-        namespace: "{{ app_namespace }}"
+        namespace: "{{ pipeline_namespace }}"
       register: pipeline_sa
       until: pipeline_sa.resources | length > 0
       retries: "{{ (pipelines_timeout | int / 10) | int }}"
       delay: 10
 
+    - name: Let the pipeline push images to, and restart the deployments of, the app namespace
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: >-
+          {{ item | combine({'metadata': {'namespace': app_namespace}}, recursive=true)
+             | combine({'subjects': [{'kind': 'ServiceAccount', 'name': 'pipeline', 'namespace': pipeline_namespace}]}
+                       if item.kind == 'RoleBinding' else {}) }}
+      loop: "{{ lookup('ansible.builtin.file', tekton_dir ~ '/rbac.yaml') | from_yaml_all | list }}"
+      loop_control:
+        label: "{{ item.kind }}/{{ item.metadata.name }}"
+
     - name: Apply the smart-travel-buddy-build Pipeline
       kubernetes.core.k8s:
         state: present
         apply: true
-        namespace: "{{ app_namespace }}"
+        namespace: "{{ pipeline_namespace }}"
         definition: "{{ lookup('ansible.builtin.file', tekton_dir ~ '/pipeline.yaml') | from_yaml }}"
       register: pipeline_apply
       # Retry while the Tekton CRDs are still being registered after the operator install.
@@ -66,9 +88,12 @@
         generate_name: smart-travel-buddy-build-
         definition: >-
           {{ lookup('ansible.builtin.file', tekton_dir ~ '/pipelinerun.yaml') | from_yaml
-             | combine({'metadata': {'namespace': app_namespace},
+             | combine({'metadata': {'namespace': pipeline_namespace},
                         'spec': {'params': [{'name': 'GIT_URL', 'value': pipeline_git_url},
-                                            {'name': 'GIT_REVISION', 'value': pipeline_git_revision}]}},
+                                            {'name': 'GIT_REVISION', 'value': pipeline_git_revision},
+                                            {'name': 'APP_NAMESPACE', 'value': app_namespace},
+                                            {'name': 'IMAGE_REGISTRY',
+                                             'value': 'image-registry.openshift-image-registry.svc:5000/' ~ app_namespace}]}},
                        recursive=true) }}
       register: pipeline_run
 
@@ -77,7 +102,7 @@
         api_version: tekton.dev/v1
         kind: PipelineRun
         name: "{{ pipeline_run.result.metadata.name }}"
-        namespace: "{{ app_namespace }}"
+        namespace: "{{ pipeline_namespace }}"
       register: run_status
       until: >-
         (run_status.resources[0].status.conditions | default([])
@@ -92,5 +117,5 @@
         that: condition.status == 'True'
         fail_msg: >-
           PipelineRun {{ pipeline_run.result.metadata.name }} failed ({{ condition.reason }}): {{ condition.message }}
-          Inspect it with: tkn pipelinerun logs {{ pipeline_run.result.metadata.name }} -n {{ app_namespace }}
+          Inspect it with: tkn pipelinerun logs {{ pipeline_run.result.metadata.name }} -n {{ pipeline_namespace }}
         success_msg: "PipelineRun {{ pipeline_run.result.metadata.name }} succeeded"

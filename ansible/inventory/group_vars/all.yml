@@ -32,6 +32,7 @@ guardrails_timeout: 600  # seconds to wait for the NeMo Guardrails service to be
 # ── OpenShift Pipelines (builds the app images in step 5) ──────
 pipelines_channel: latest
 pipelines_timeout: 900
+pipeline_namespace: smart-travel-buddy-pipeline  # where the Pipeline and its runs live
 pipeline_git_url: https://github.com/giofontana/smart-travel-buddy.git
 pipeline_git_revision: master
 pipeline_timeout: 1800  # seconds to wait for the image build PipelineRun

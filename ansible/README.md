@@ -98,7 +98,7 @@ All playbooks are idempotent and safe to re-run. Run them from the `ansible/` di
 | [02-gitops-operator.yml](playbooks/02-gitops-operator.yml) | 2 | Installs the **OpenShift GitOps** operator (Namespace, OperatorGroup, Subscription on channel `latest`). Waits for the CSV and the default `openshift-gitops` Argo CD instance. |
 | [03-cluster-admins.yml](playbooks/03-cluster-admins.yml) | 3 | Creates the `cluster-admins` group with the `admin` user and binds it to the `cluster-admin` ClusterRole. OpenShift GitOps gives this group admin rights in Argo CD. |
 | [04-ai-components.yml](playbooks/04-ai-components.yml) | 4 | Sets `mlflowoperator` and `trustyai` to `Managed` on `default-dsc` and waits for the MLflow and NeMo Guardrails CRDs. Then creates the `MLflow` instance in `redhat-ods-applications` (10Gi PVC, SQLite backend, local artifacts). |
-| [05-build-images.yml](playbooks/05-build-images.yml) | 5 | Installs the **OpenShift Pipelines** operator (Subscription on channel `latest`) if needed, applies the `smart-travel-buddy-build` Pipeline from [tekton/](../tekton/) and runs it. The Pipeline builds the five app images from Git (`pipeline_git_url` / `pipeline_git_revision`, not your local working tree) and pushes them to the internal registry of `smart-travel-buddy`. Waits for the PipelineRun to succeed, so the images exist before Argo CD deploys the app. |
+| [05-build-images.yml](playbooks/05-build-images.yml) | 5 | Installs the **OpenShift Pipelines** operator (Subscription on channel `latest`) if needed, applies the `smart-travel-buddy-build` Pipeline from [tekton/](../tekton/) in the `smart-travel-buddy-pipeline` namespace, with RoleBindings that let it push images to and restart the deployments of `smart-travel-buddy`, and runs it. The Pipeline builds the five app images from Git (`pipeline_git_url` / `pipeline_git_revision`, not your local working tree) and pushes them to the internal registry of `smart-travel-buddy`. Waits for the PipelineRun to succeed, so the images exist before Argo CD deploys the app. |
 | [06-argocd-app.yml](playbooks/06-argocd-app.yml) | 6 | Applies three Argo CD applications: [application-container.yaml](../gitops/argocd/application-container.yaml) (the `workloads` AppProject + the `smart-travel-buddy` app), [application-model.yaml](../gitops/argocd/application-model.yaml) (`gemma-4-model`, the Gemma 4 model) and [application-guardrails.yaml](../gitops/argocd/application-guardrails.yaml) (`guardrails`, NeMo Guardrails). Waits for the backend Deployment, then for the model to be `Ready` and its API token to be issued. |
 | [07-app-config.yml](playbooks/07-app-config.yml) | 7–9 | Asks for the OpenWeatherMap API key (if not already given). Reads the Gemma 4 API token and internal endpoint from the cluster and creates the `api-keys` Secret. Waits for NeMo Guardrails, which needs that Secret, then creates the `backend-config` ConfigMap in `smart-travel-buddy`, including the NeMo Guardrails URL. |
 | [08-restart-backend.yml](playbooks/08-restart-backend.yml) | 10 | Deletes the backend pod and waits for the new one to be ready, so it picks up the new Secret and ConfigMap. |
@@ -136,6 +136,7 @@ override any of them with `-e name=value`.
 | `guardrails_name` | `travel-guardrails` | `NemoGuardrails` name (must match `gitops/guardrails/`). |
 | `guardrails_timeout` | `600` | Seconds to wait for NeMo Guardrails to be available. |
 | `pipelines_channel` | `latest` | OpenShift Pipelines operator channel. |
+| `pipeline_namespace` | `smart-travel-buddy-pipeline` | Namespace of the Pipeline and its PipelineRuns. |
 | `pipeline_git_url` / `pipeline_git_revision` | this repo / `master` | Git repository and revision the images are built from. |
 | `pipeline_timeout` | `1800` | Seconds to wait for the image build PipelineRun. |
 | `gitops_channel` | `latest` | OpenShift GitOps operator channel. |
@@ -174,7 +175,7 @@ ansible-playbook playbooks/09-show-url.yml
   `oc annotate inferenceservice <name> -n <namespace> serving.kserve.io/stop=false --overwrite`
   (only after stopping Gemma 4 the same way, since there is one GPU).
 - **Image build fails (step 5).** Inspect the run with
-  `tkn pipelinerun list -n smart-travel-buddy` and `tkn pipelinerun logs <name> -n smart-travel-buddy`,
+  `tkn pipelinerun list -n smart-travel-buddy-pipeline` and `tkn pipelinerun logs <name> -n smart-travel-buddy-pipeline`,
   then re-run `ansible-playbook playbooks/05-build-images.yml`. Until a build succeeds, the app pods
   stay in `ImagePullBackOff`.
 - **Model never becomes Ready.** Check the predictor pod with

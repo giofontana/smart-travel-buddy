@@ -147,7 +147,7 @@ make seed
 | `make test` | Run all test suites |
 | `make lint` | Run ruff linter and formatter check |
 | `make deploy` | Apply Kustomize manifests to OpenShift |
-| `make pipeline-install` | Apply the Tekton pipeline in `tekton/` to the `smart-travel-buddy` namespace |
+| `make pipeline-install` | Apply the Tekton pipeline in `tekton/` to the `smart-travel-buddy-pipeline` namespace |
 | `make pipeline-run` | Build all images on OpenShift, push them to the internal registry and restart the deployments |
 | `make clean` | Remove all containers, network, and images |
 
@@ -224,11 +224,13 @@ them from the OpenShift internal registry, so this has to run at least once befo
 ```bash
 make pipeline-install   # apply the smart-travel-buddy-build Pipeline from tekton/
 make pipeline-run       # start a PipelineRun
-tkn pipelinerun logs -f -L -n smart-travel-buddy
+tkn pipelinerun logs -f -L -n smart-travel-buddy-pipeline
 ```
 
 The pipeline clones the Git repo (`GIT_URL` / `GIT_REVISION` params, `master` by default), so it
-builds what is pushed, not your local working tree. It builds the five images in parallel with
+builds what is pushed, not your local working tree. The Pipeline and its runs live in their own
+namespace, `smart-travel-buddy-pipeline`; `tekton/rbac.yaml` lets its `pipeline` ServiceAccount
+push images to and restart the deployments of `smart-travel-buddy`. It builds the five images in parallel with
 `buildah`, pushes them to `image-registry.openshift-image-registry.svc:5000/smart-travel-buddy`,
 then restarts the deployments that already exist so they pull the new `:latest` images. The
 workspace PVC uses the cluster's default StorageClass.
