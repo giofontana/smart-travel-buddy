@@ -3,7 +3,7 @@ apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   generateName: smart-travel-buddy-build-
-  namespace: smart-travel-buddy
+  namespace: smart-travel-buddy-pipeline
 spec:
   pipelineRef:
     name: smart-travel-buddy-build

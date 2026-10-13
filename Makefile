@@ -29,7 +29,7 @@ help:
 	@echo "  make deploy       - Apply Kustomize manifests to OpenShift"
 	@echo ""
 	@echo "OpenShift Pipelines:"
-	@echo "  make pipeline-install - Apply the Tekton pipeline (tekton/) to OpenShift"
+	@echo "  make pipeline-install - Apply the Tekton pipeline (tekton/) to smart-travel-buddy-pipeline"
 	@echo "  make pipeline-run     - Build all images on OpenShift and restart the deployments"
 	@echo ""
 	@echo "Cleanup:"
@@ -148,7 +148,7 @@ pipeline-install:
 
 pipeline-run:
 	oc create -f tekton/pipelinerun.yaml
-	@echo "Follow the build with: tkn pipelinerun logs -f -L -n smart-travel-buddy"
+	@echo "Follow the build with: tkn pipelinerun logs -f -L -n smart-travel-buddy-pipeline"
 
 # ── Cleanup ──────────────────────────────────────────────────────
 

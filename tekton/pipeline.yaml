@@ -1,10 +1,13 @@
 # Builds the five Smart Travel Buddy images from Git and pushes them to the registry
-# (by default the OpenShift internal registry of the smart-travel-buddy namespace).
+# (by default the OpenShift internal registry of the smart-travel-buddy namespace), then restarts
+# the app deployments. Runs in smart-travel-buddy-pipeline; rbac.yaml grants it access to the app
+# namespace.
 # Uses the git-clone, buildah and openshift-client tasks shipped with OpenShift Pipelines.
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: smart-travel-buddy-build
+  namespace: smart-travel-buddy-pipeline
 spec:
   params:
     - name: GIT_URL
@@ -20,6 +23,10 @@ spec:
     - name: IMAGE_TAG
       type: string
       default: latest
+    - name: APP_NAMESPACE
+      type: string
+      description: Namespace of the app deployments restarted after the build
+      default: smart-travel-buddy
   workspaces:
     - name: source
   tasks:
@@ -143,7 +150,7 @@ spec:
         - name: SCRIPT
           value: |
             set -e
-            ns=$(context.pipelineRun.namespace)
+            ns=$(params.APP_NAMESPACE)
             for d in backend frontend mcp-weather mcp-currency mcp-wikipedia; do
               if oc get deployment "$d" -n "$ns" >/dev/null 2>&1; then
                 oc rollout restart deployment/"$d" -n "$ns"
