@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: mcp-wikipedia
   namespace: smart-travel-buddy
+  labels:
+    app: mcp-wikipedia
+    app.kubernetes.io/part-of: smart-travel-buddy
+    component: mcp
+    deploy-name: mcp-wikipedia
 spec:
   replicas: 1
   selector:

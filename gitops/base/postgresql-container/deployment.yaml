@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: postgresql
   namespace: smart-travel-buddy
+  labels:
+    app: postgresql
+    app.kubernetes.io/part-of: smart-travel-buddy
+    component: database
+    deploy-name: postgresql
 spec:
   replicas: 1
   selector:
