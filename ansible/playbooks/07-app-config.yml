@@ -27,31 +27,6 @@
         fail_msg: An OpenWeatherMap API key is required.
         quiet: true
 
-    - name: Wait for the model to be Ready (downloads the model image, can take a while)
-      kubernetes.core.k8s_info:
-        api_version: serving.kserve.io/v1beta1
-        kind: InferenceService
-        name: "{{ model_name }}"
-        namespace: "{{ model_namespace }}"
-        wait: true
-        wait_condition:
-          type: Ready
-          status: "True"
-        wait_sleep: 15
-        wait_timeout: "{{ model_ready_timeout }}"
-
-    - name: Wait for the model API token to be issued
-      kubernetes.core.k8s_info:
-        api_version: v1
-        kind: Secret
-        name: "default-name-{{ model_name }}-sa"
-        namespace: "{{ model_namespace }}"
-      register: model_token_secret
-      until: (model_token_secret.resources | length > 0) and ('token' in (model_token_secret.resources[0].data | default({})))
-      retries: 30
-      delay: 5
-      no_log: true
-
     - name: Read the Gemma 4 API token
       kubernetes.core.k8s_info:
         api_version: v1
