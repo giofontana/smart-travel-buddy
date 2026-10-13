@@ -1,0 +1,42 @@
+---
+# Step 5: deploy the Gemma 4 model with the gemma-4-model Argo CD application. Only waits for the
+# InferenceService to be created: step 7 waits for the model to be Ready and for its API token, so
+# the model download runs in parallel with step 6 (NeMo Guardrails). The application uses the
+# "workloads" AppProject defined in application-container.yaml, so that AppProject is applied
+# first (step 9 applies the rest of that file, the smart-travel-buddy app).
+- name: Deploy the Gemma 4 model
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Download the Argo CD manifests
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        return_content: true
+      loop:
+        - "{{ argocd_app_url }}"
+        - "{{ argocd_model_app_url }}"
+      register: argocd_manifests
+
+    - name: Apply the workloads AppProject and the gemma-4-model application
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: >-
+          {{ (argocd_manifests.results[0].content | from_yaml_all | select | selectattr('kind', 'equalto', 'AppProject') | list)
+             + (argocd_manifests.results[1].content | from_yaml_all | select | list) }}
+      register: argocd_app
+      # Retry while the Argo CD CRDs are still being registered after the operator install.
+      until: argocd_app is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Wait for Argo CD to create the Gemma 4 InferenceService
+      kubernetes.core.k8s_info:
+        api_version: serving.kserve.io/v1beta1
+        kind: InferenceService
+        name: "{{ model_name }}"
+        namespace: "{{ model_namespace }}"
+      register: model_isvc
+      until: model_isvc.resources | length > 0
+      retries: "{{ (argocd_app_timeout | int / 10) | int }}"
+      delay: 10

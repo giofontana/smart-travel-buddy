@@ -1,0 +1,35 @@
+---
+# Step 6: deploy NeMo Guardrails with the guardrails Argo CD application. It needs the api-keys
+# Secret to start, which step 7 creates, so this step only waits for Argo CD to create the
+# NemoGuardrails resource. Step 7 waits for it to be available.
+- name: Deploy NeMo Guardrails
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Download the guardrails Argo CD application manifest
+      ansible.builtin.uri:
+        url: "{{ argocd_guardrails_app_url }}"
+        return_content: true
+      register: argocd_manifest
+
+    - name: Apply the guardrails application
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ argocd_manifest.content | from_yaml_all | select | list }}"
+      register: argocd_app
+      # Retry while the Argo CD CRDs are still being registered after the operator install.
+      until: argocd_app is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Wait for Argo CD to create the NemoGuardrails resource
+      kubernetes.core.k8s_info:
+        api_version: trustyai.opendatahub.io/v1alpha1
+        kind: NemoGuardrails
+        name: "{{ guardrails_name }}"
+        namespace: "{{ app_namespace }}"
+      register: guardrails
+      until: guardrails.resources | length > 0
+      retries: "{{ (argocd_app_timeout | int / 10) | int }}"
+      delay: 10

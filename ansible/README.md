@@ -79,7 +79,7 @@ ansible-playbook site.yml -e openweathermap_api_key=XXXX
 ```
 
 `site.yml` is the single entry point. It asks for the OpenWeatherMap key once, then runs
-`playbooks/01` to `09` in order. Each playbook can also be run on its own, for example to repeat
+`playbooks/01` to `11` in order. Each playbook can also be run on its own, for example to repeat
 one step:
 
 ```bash
@@ -98,11 +98,13 @@ All playbooks are idempotent and safe to re-run. Run them from the `ansible/` di
 | [02-gitops-operator.yml](playbooks/02-gitops-operator.yml) | 2 | Installs the **OpenShift GitOps** operator (Namespace, OperatorGroup, Subscription on channel `latest`). Waits for the CSV and the default `openshift-gitops` Argo CD instance. |
 | [03-cluster-admins.yml](playbooks/03-cluster-admins.yml) | 3 | Creates the `cluster-admins` group with the `admin` user and binds it to the `cluster-admin` ClusterRole. OpenShift GitOps gives this group admin rights in Argo CD. |
 | [04-ai-components.yml](playbooks/04-ai-components.yml) | 4 | Sets `mlflowoperator` and `trustyai` to `Managed` on `default-dsc` and waits for the MLflow and NeMo Guardrails CRDs. Then creates the `MLflow` instance in `redhat-ods-applications` (10Gi PVC, SQLite backend, local artifacts). |
-| [05-build-images.yml](playbooks/05-build-images.yml) | 5 | Installs the **OpenShift Pipelines** operator (Subscription on channel `latest`) if needed, applies the `smart-travel-buddy-build` Pipeline from [tekton/](../tekton/) in the `smart-travel-buddy-pipeline` namespace, with RoleBindings that let it push images to and restart the deployments of `smart-travel-buddy`, and runs it. The Pipeline builds the five app images from Git (`pipeline_git_url` / `pipeline_git_revision`, not your local working tree) and pushes them to the internal registry of `smart-travel-buddy`. Waits for the PipelineRun to succeed, so the images exist before Argo CD deploys the app. |
-| [06-argocd-app.yml](playbooks/06-argocd-app.yml) | 6 | Applies three Argo CD applications: [application-container.yaml](../gitops/argocd/application-container.yaml) (the `workloads` AppProject + the `smart-travel-buddy` app), [application-model.yaml](../gitops/argocd/application-model.yaml) (`gemma-4-model`, the Gemma 4 model) and [application-guardrails.yaml](../gitops/argocd/application-guardrails.yaml) (`guardrails`, NeMo Guardrails). Waits for the backend Deployment, then for the model to be `Ready` and its API token to be issued. |
-| [07-app-config.yml](playbooks/07-app-config.yml) | 7–9 | Asks for the OpenWeatherMap API key (if not already given). Reads the Gemma 4 API token and internal endpoint from the cluster and creates the `api-keys` Secret. Waits for NeMo Guardrails, which needs that Secret, then creates the `backend-config` ConfigMap in `smart-travel-buddy`, including the NeMo Guardrails URL. |
-| [08-restart-backend.yml](playbooks/08-restart-backend.yml) | 10 | Deletes the backend pod and waits for the new one to be ready, so it picks up the new Secret and ConfigMap. |
-| [09-show-url.yml](playbooks/09-show-url.yml) | – | Prints `Smart Travel Buddy agent is available at https://<frontend route>`. |
+| [05-model-deployment.yml](playbooks/05-model-deployment.yml) | 5 | Applies the `workloads` AppProject from [application-container.yaml](../gitops/argocd/application-container.yaml) and the `gemma-4-model` Argo CD application ([application-model.yaml](../gitops/argocd/application-model.yaml)). Only waits for the `InferenceService` to be created, so the model downloads while step 6 runs. |
+| [06-guardrails-deployment.yml](playbooks/06-guardrails-deployment.yml) | 6 | Applies the `guardrails` Argo CD application ([application-guardrails.yaml](../gitops/argocd/application-guardrails.yaml)) and waits for the `NemoGuardrails` resource. NeMo Guardrails needs the `api-keys` Secret to start, so step 7 waits for it to be available. |
+| [07-app-config.yml](playbooks/07-app-config.yml) | 7 | Asks for the OpenWeatherMap API key (if not already given). Waits for the Gemma 4 model to be `Ready` and its API token to be issued, then reads the token and internal endpoint from the cluster and creates the `api-keys` Secret. Waits for NeMo Guardrails, which needs that Secret, then creates the `backend-config` ConfigMap in `smart-travel-buddy`, including the NeMo Guardrails URL. |
+| [08-build-images.yml](playbooks/08-build-images.yml) | 8 | Installs the **OpenShift Pipelines** operator (Subscription on channel `latest`) if needed, applies the `smart-travel-buddy-build` Pipeline from [tekton/](../tekton/) in the `smart-travel-buddy-pipeline` namespace, with RoleBindings that let it push images to and restart the deployments of `smart-travel-buddy`, and runs it. The Pipeline builds the five app images from Git (`pipeline_git_url` / `pipeline_git_revision`, not your local working tree) and pushes them to the internal registry of `smart-travel-buddy`. Waits for the PipelineRun to succeed, so the images exist before Argo CD deploys the app. |
+| [09-argocd-app.yml](playbooks/09-argocd-app.yml) | 9 | Applies [application-container.yaml](../gitops/argocd/application-container.yaml) (the `workloads` AppProject + the `smart-travel-buddy` Argo CD application) and waits for the backend Deployment. The Secret, ConfigMap and images already exist, so the app pods start right away. |
+| [10-restart-backend.yml](playbooks/10-restart-backend.yml) | 10 | Deletes the backend pod and waits for the new one to be ready, so it picks up the new Secret and ConfigMap. |
+| [11-show-url.yml](playbooks/11-show-url.yml) | – | Prints `Smart Travel Buddy agent is available at https://<frontend route>`. |
 
 ### Values written to the app configuration
 
@@ -166,7 +168,7 @@ oc run model-check --rm -i --restart=Never -n smart-travel-buddy \
   curl -sk -H "Authorization: Bearer $TOKEN" "$URL/models"
 
 # Print the app URL again
-ansible-playbook playbooks/09-show-url.yml
+ansible-playbook playbooks/11-show-url.yml
 ```
 
 ## Troubleshooting
@@ -174,10 +176,9 @@ ansible-playbook playbooks/09-show-url.yml
 - **Other models were stopped.** Step 1 stops every other running model, but it does not delete them. Start one again from the dashboard, or with
   `oc annotate inferenceservice <name> -n <namespace> serving.kserve.io/stop=false --overwrite`
   (only after stopping Gemma 4 the same way, since there is one GPU).
-- **Image build fails (step 5).** Inspect the run with
+- **Image build fails (step 8).** Inspect the run with
   `tkn pipelinerun list -n smart-travel-buddy-pipeline` and `tkn pipelinerun logs <name> -n smart-travel-buddy-pipeline`,
-  then re-run `ansible-playbook playbooks/05-build-images.yml`. Until a build succeeds, the app pods
-  stay in `ImagePullBackOff`.
+  then re-run `ansible-playbook playbooks/08-build-images.yml` and continue with steps 9–10.
 - **Model never becomes Ready.** Check the predictor pod with
   `oc get pods -n smart-travel-buddy -l serving.kserve.io/inferenceservice=redhataigemma-4-12b-it-fp8-dyn`
   and `oc logs`. Pulling the model image can take a long time on first run. If vLLM fails with a
@@ -192,7 +193,7 @@ ansible-playbook playbooks/09-show-url.yml
   OpenShift as a member of `cluster-admins`.
 - **Guardrails switch is greyed out.** The backend has no `guardrails-url`. Check that
   `oc get cm backend-config -n smart-travel-buddy -o jsonpath='{.data.guardrails-url}'` is set,
-  then re-run steps 7–10.
+  then re-run steps 7 and 10.
 - **NeMo Guardrails pod not starting.** It needs the `api-keys` Secret (step 7). Check
   `oc describe pod -l app=travel-guardrails -n smart-travel-buddy` and
   `oc logs deploy/travel-guardrails -n smart-travel-buddy -c nemo-guardrails`.
@@ -200,5 +201,5 @@ ansible-playbook playbooks/09-show-url.yml
   `oc get mlflow mlflow -n redhat-ods-applications -o yaml` and the pods in `redhat-ods-applications`.
 - **Backend cannot reach the model or MLflow.** Check the values with
   `oc get cm backend-config -n smart-travel-buddy -o yaml` and the backend logs with
-  `oc logs deploy/backend -n smart-travel-buddy`. Re-run steps 7–10 after any fix:
-  `ansible-playbook playbooks/07-app-config.yml playbooks/08-restart-backend.yml`.
+  `oc logs deploy/backend -n smart-travel-buddy`. Re-run steps 7 and 10 after any fix:
+  `ansible-playbook playbooks/07-app-config.yml playbooks/10-restart-backend.yml`.

@@ -26,17 +26,23 @@
 - name: Step 4 - Deploy MLflow and TrustyAI
   ansible.builtin.import_playbook: playbooks/04-ai-components.yml
 
-- name: Step 5 - Build the app images (OpenShift Pipelines)
-  ansible.builtin.import_playbook: playbooks/05-build-images.yml
+- name: Step 5 - Deploy the Gemma 4 model (Argo CD)
+  ansible.builtin.import_playbook: playbooks/05-model-deployment.yml
 
-- name: Step 6 - Deploy the Argo CD applications (app, Gemma 4 model, guardrails)
-  ansible.builtin.import_playbook: playbooks/06-argocd-app.yml
+- name: Step 6 - Deploy NeMo Guardrails (Argo CD)
+  ansible.builtin.import_playbook: playbooks/06-guardrails-deployment.yml
 
-- name: Steps 7-9 - Create the api-keys Secret and backend-config ConfigMap
+- name: Step 7 - Create the api-keys Secret and backend-config ConfigMap
   ansible.builtin.import_playbook: playbooks/07-app-config.yml
 
+- name: Step 8 - Build the app images (OpenShift Pipelines)
+  ansible.builtin.import_playbook: playbooks/08-build-images.yml
+
+- name: Step 9 - Deploy the Smart Travel Buddy app (Argo CD)
+  ansible.builtin.import_playbook: playbooks/09-argocd-app.yml
+
 - name: Step 10 - Restart the backend
-  ansible.builtin.import_playbook: playbooks/08-restart-backend.yml
+  ansible.builtin.import_playbook: playbooks/10-restart-backend.yml
 
 - name: Show the Smart Travel Buddy URL
-  ansible.builtin.import_playbook: playbooks/09-show-url.yml
+  ansible.builtin.import_playbook: playbooks/11-show-url.yml

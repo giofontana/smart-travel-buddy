@@ -29,7 +29,7 @@ model_stop_timeout: 600  # seconds to wait for other running models to release t
 guardrails_name: travel-guardrails
 guardrails_timeout: 600  # seconds to wait for the NeMo Guardrails service to be available
 
-# ── OpenShift Pipelines (builds the app images in step 5) ──────
+# ── OpenShift Pipelines (builds the app images in step 8) ──────
 pipelines_channel: latest
 pipelines_timeout: 900
 pipeline_namespace: smart-travel-buddy-pipeline  # where the Pipeline and its runs live

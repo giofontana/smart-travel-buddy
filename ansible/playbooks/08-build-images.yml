@@ -1,9 +1,9 @@
 ---
-# Step 5: build the app images with OpenShift Pipelines. Installs the operator, applies the
+# Step 8: build the app images with OpenShift Pipelines. Installs the operator, applies the
 # smart-travel-buddy-build Pipeline from tekton/ in its own namespace (pipeline_namespace) and runs
 # it, so the images exist in the internal registry of app_namespace before Argo CD deploys the app
-# in step 6. The pipeline builds from Git (GIT_URL and
-# GIT_REVISION), not from the local working tree.
+# in step 9. The pipeline builds from Git (GIT_URL and GIT_REVISION), not from the local working
+# tree.
 - name: Build the app images with OpenShift Pipelines
   hosts: localhost
   gather_facts: false
