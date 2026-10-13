@@ -1,5 +1,5 @@
 ---
-# Steps 7-9: collect the OpenWeatherMap key, the Gemma 4 token and internal endpoint, then
+# Step 7: collect the OpenWeatherMap key, the Gemma 4 token and internal endpoint, then
 # create the api-keys Secret and backend-config ConfigMap used by the backend. The ConfigMap
 # also gets the NeMo Guardrails URL, which enables the Guardrails switch in the UI.
 - name: Configure Smart Travel Buddy
@@ -57,7 +57,7 @@
           - model_isvc.resources | length > 0
           - model_isvc.resources[0].status.address.url is defined
         fail_msg: >-
-          The model token or internal endpoint is missing. Run playbooks/06-argocd-app.yml
+          The model token or internal endpoint is missing. Run playbooks/05-model-deployment.yml
           first and make sure the InferenceService is Ready.
         quiet: true
 

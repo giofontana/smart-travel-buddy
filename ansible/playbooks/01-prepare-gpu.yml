@@ -1,6 +1,6 @@
 ---
 # Step 1: prepare the cluster for the Gemma 4 model, which is deployed by the gemma-4-model
-# Argo CD application in step 6. The cluster has a single GPU, so any other running model is
+# Argo CD application in step 5. The cluster has a single GPU, so any other running model is
 # stopped first.
 - name: Prepare the GPU for the Gemma 4 model
   hosts: localhost

@@ -1,0 +1,35 @@
+---
+# Step 9: create the smart-travel-buddy Argo CD application (and the workloads AppProject, already
+# applied in step 5). It runs after step 7 created the api-keys Secret and backend-config
+# ConfigMap and step 8 built the images, so the app pods can start right away.
+- name: Deploy the Smart Travel Buddy Argo CD application
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Download the Argo CD application manifest
+      ansible.builtin.uri:
+        url: "{{ argocd_app_url }}"
+        return_content: true
+      register: argocd_manifest
+
+    - name: Apply the workloads AppProject and the smart-travel-buddy application
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ argocd_manifest.content | from_yaml_all | select | list }}"
+      register: argocd_app
+      # Retry while the Argo CD CRDs are still being registered after the operator install.
+      until: argocd_app is succeeded
+      retries: 12
+      delay: 10
+
+    - name: Wait for Argo CD to create the backend Deployment
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: backend
+        namespace: "{{ app_namespace }}"
+      register: backend_deployment
+      until: backend_deployment.resources | length > 0
+      retries: "{{ (argocd_app_timeout | int / 10) | int }}"
+      delay: 10
