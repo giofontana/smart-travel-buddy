@@ -22,6 +22,13 @@ spec:
                 name=$(echo "$base" | sed "s/^${dir}--//")
                 cp "$f" "/tmp/knowledge/$dir/$name"
               done
+              # PostgreSQL may still be starting when the Job runs. Wait for it here instead of
+              # failing and leaving failed pods behind (activeDeadlineSeconds bounds the wait).
+              echo "=== Waiting for PostgreSQL ==="
+              until python -c 'import os, psycopg; psycopg.connect(os.environ["DATABASE_URL_SYNC"].replace("+psycopg", ""), connect_timeout=5).close()' 2>/dev/null; do
+                echo "PostgreSQL is not ready yet, retrying in 5s"
+                sleep 5
+              done
               echo "=== Running migrations ==="
               alembic -c alembic.ini upgrade head
               echo "=== Seeding knowledge base ==="
