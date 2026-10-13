@@ -78,7 +78,8 @@ def mlflow_run(session_id: str, state: dict, request: str = ""):
         root_span = span_ctx.__enter__()
         if request:
             root_span.set_inputs({"messages": [{"role": "user", "content": request}]})
-        mlflow.update_current_trace(tags={"mlflow.trace.session": session_id})
+        # The session is trace metadata, not a tag; as a tag MLflow does not group the traces.
+        mlflow.update_current_trace(metadata={"mlflow.trace.session": session_id})
     except Exception:
         logger.debug("MLflow run failed; continuing without tracing", exc_info=True)
         yield None
