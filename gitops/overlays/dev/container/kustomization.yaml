@@ -8,15 +8,15 @@ resources:
 
 images:
   - name: smart-travel-buddy/backend
-    newName: quay.io/gfontana/smart-travel-buddy-backend
+    newName: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy/smart-travel-buddy-backend
   - name: smart-travel-buddy/frontend
-    newName: quay.io/gfontana/smart-travel-buddy-frontend
+    newName: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy/smart-travel-buddy-frontend
   - name: smart-travel-buddy/mcp-currency
-    newName: quay.io/gfontana/smart-travel-buddy-mcp-currency
+    newName: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy/smart-travel-buddy-mcp-currency
   - name: smart-travel-buddy/mcp-weather
-    newName: quay.io/gfontana/smart-travel-buddy-mcp-weather
+    newName: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy/smart-travel-buddy-mcp-weather
   - name: smart-travel-buddy/mcp-wikipedia
-    newName: quay.io/gfontana/smart-travel-buddy-mcp-wikipedia
+    newName: image-registry.openshift-image-registry.svc:5000/smart-travel-buddy/smart-travel-buddy-mcp-wikipedia
 
 patches:
   - target:

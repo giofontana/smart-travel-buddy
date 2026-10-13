@@ -1,7 +1,7 @@
 ---
 # Step 4: enable the MLflow and TrustyAI (NeMo Guardrails) components in OpenShift AI and
 # create the MLflow instance. The NeMo Guardrails service itself is deployed by the
-# guardrails Argo CD application in step 5.
+# guardrails Argo CD application in step 6.
 - name: Deploy MLflow and TrustyAI
   hosts: localhost
   gather_facts: false

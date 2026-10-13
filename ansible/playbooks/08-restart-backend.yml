@@ -1,5 +1,5 @@
 ---
-# Step 9: delete the backend pod so it picks up the new Secret and ConfigMap.
+# Step 10: delete the backend pod so it picks up the new Secret and ConfigMap.
 - name: Restart the Smart Travel Buddy backend
   hosts: localhost
   gather_facts: false
