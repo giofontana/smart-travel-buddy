@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: backend
   namespace: smart-travel-buddy
+  labels:
+    app: backend
+    app.kubernetes.io/part-of: smart-travel-buddy
+    component: backend
+    deploy-name: backend
 spec:
   replicas: 1
   selector:

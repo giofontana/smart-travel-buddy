@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: mcp-weather
   namespace: smart-travel-buddy
+  labels:
+    app: mcp-weather
+    app.kubernetes.io/part-of: smart-travel-buddy
+    component: mcp
+    deploy-name: mcp-weather
 spec:
   replicas: 1
   selector:

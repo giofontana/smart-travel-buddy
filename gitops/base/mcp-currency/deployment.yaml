@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: mcp-currency
   namespace: smart-travel-buddy
+  labels:
+    app: mcp-currency
+    app.kubernetes.io/part-of: smart-travel-buddy
+    component: mcp
+    deploy-name: mcp-currency
 spec:
   replicas: 1
   selector:
