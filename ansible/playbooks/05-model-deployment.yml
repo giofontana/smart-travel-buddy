@@ -1,8 +1,9 @@
 ---
-# Step 5: deploy the Gemma 4 model with the gemma-4-model Argo CD application, and wait for it to
-# be Ready and for its API token, which step 7 reads. The application uses the "workloads"
-# AppProject defined in application-container.yaml, so that AppProject is applied first (step 9
-# applies the rest of that file, the smart-travel-buddy app).
+# Step 5: deploy the Gemma 4 model with the gemma-4-model Argo CD application. Only waits for the
+# InferenceService to be created: step 7 waits for the model to be Ready and for its API token, so
+# the model download runs in parallel with step 6 (NeMo Guardrails). The application uses the
+# "workloads" AppProject defined in application-container.yaml, so that AppProject is applied
+# first (step 9 applies the rest of that file, the smart-travel-buddy app).
 - name: Deploy the Gemma 4 model
   hosts: localhost
   gather_facts: false
@@ -39,28 +40,3 @@
       until: model_isvc.resources | length > 0
       retries: "{{ (argocd_app_timeout | int / 10) | int }}"
       delay: 10
-
-    - name: Wait for the model to be Ready (downloads the model image, can take a while)
-      kubernetes.core.k8s_info:
-        api_version: serving.kserve.io/v1beta1
-        kind: InferenceService
-        name: "{{ model_name }}"
-        namespace: "{{ model_namespace }}"
-        wait: true
-        wait_condition:
-          type: Ready
-          status: "True"
-        wait_sleep: 15
-        wait_timeout: "{{ model_ready_timeout }}"
-
-    - name: Wait for the model API token to be issued
-      kubernetes.core.k8s_info:
-        api_version: v1
-        kind: Secret
-        name: "default-name-{{ model_name }}-sa"
-        namespace: "{{ model_namespace }}"
-      register: model_token_secret
-      until: (model_token_secret.resources | length > 0) and ('token' in (model_token_secret.resources[0].data | default({})))
-      retries: 30
-      delay: 5
-      no_log: true
