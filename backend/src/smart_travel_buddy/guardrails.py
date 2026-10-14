@@ -19,11 +19,19 @@ INPUT_REFUSAL = (
     "I can't help with that request. Please don't share personal data such as emails or "
     "card numbers, and keep the conversation about your trip."
 )
+POLICY_REFUSAL = (
+    "I can't help with that request because it violates a security policy. "
+    "I'm happy to keep helping you plan your trip."
+)
 OUTPUT_REFUSAL = (
     "I couldn't produce an itinerary that passed the safety checks. "
     "Please try rephrasing your request."
 )
 CHAT_OUTPUT_REFUSAL = "I can't share that response because it didn't pass the safety checks."
+
+# Input rails that block personal data or secrets (names match the flows in gitops/guardrails/configmap.yaml).
+# Anything else, such as the self check for prompt injection, gets POLICY_REFUSAL.
+PERSONAL_DATA_RAILS = {"detect sensitive data on input", "regex check input"}
 
 
 @dataclass
@@ -31,6 +39,13 @@ class GuardrailResult:
     blocked: bool
     rails: list[str] = field(default_factory=list)
     error: str | None = None
+
+
+def input_refusal(result: GuardrailResult) -> str:
+    """Pick the refusal for a blocked user message based on the rails that blocked it."""
+    if PERSONAL_DATA_RAILS.intersection(result.rails):
+        return INPUT_REFUSAL
+    return POLICY_REFUSAL
 
 
 def is_guardrails_available() -> bool:
@@ -72,8 +87,9 @@ async def check(
     if status == "error":
         return _failure(f"guardrails returned an error: {body}")
 
-    rails = (body.get("guardrails_data") or {}).get("log", {}).get("activated_rails") or [
+    # rails_status names only the rails that blocked; activated_rails may list every rail that ran.
+    rails = [
         name for name, result in (body.get("rails_status") or {}).items()
         if result.get("status") == "blocked"
-    ]
+    ] or (body.get("guardrails_data") or {}).get("log", {}).get("activated_rails") or []
     return GuardrailResult(blocked=status == "blocked", rails=rails)

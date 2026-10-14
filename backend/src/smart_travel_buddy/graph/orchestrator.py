@@ -182,11 +182,12 @@ class Orchestrator:
         if not result.blocked:
             return True
 
-        await self.broadcast("agent_message", {"content": guardrails.INPUT_REFUSAL})
+        refusal = guardrails.input_refusal(result)
+        await self.broadcast("agent_message", {"content": refusal})
         if span:
             span.set_outputs({
                 "choices": [{
-                    "message": {"role": "assistant", "content": guardrails.INPUT_REFUSAL}
+                    "message": {"role": "assistant", "content": refusal}
                 }]
             })
         return False
